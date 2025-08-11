@@ -1,4 +1,5 @@
 using Domain.Common;
+using Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities;
@@ -25,7 +26,7 @@ public class TaskItem : BaseEntity
     /// Current task status
     /// </summary>
     [Required]
-    public TaskStatus Status { get; set; } = TaskStatus.Todo;
+    public Domain.Enums.TaskStatus Status { get; set; } = Domain.Enums.TaskStatus.Todo;
 
     /// <summary>
     /// Task priority for AI scheduling
@@ -158,9 +159,9 @@ public class TaskStatusHistory
 {
     public Guid Id { get; set; }
 
-    public TaskStatus FromStatus { get; set; }
+    public Domain.Enums.TaskStatus FromStatus { get; set; }
 
-    public TaskStatus ToStatus { get; set; }
+    public Domain.Enums.TaskStatus ToStatus { get; set; }
 
     [StringLength(500)]
     public string? Reason { get; set; }

@@ -3,16 +3,7 @@ namespace Domain.Enums;
 /// <summary>
 /// Task status enumeration
 /// </summary>
-public enum TaskStatus
-{
-    Todo,
-    InProgress,
-    Review,
-    Completed,
-    Cancelled,
-    OnHold,
-    Blocked
-}
+
 /// <summary>
 /// Task priority levels for AI scheduling
 /// </summary>

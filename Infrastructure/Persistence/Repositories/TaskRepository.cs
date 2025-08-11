@@ -1,0 +1,91 @@
+using Application.IRepositories;
+using Domain.Entities;
+using Infrastructure.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
+using TaskStatus = Domain.Enums.TaskStatus;
+
+namespace Infrastructure.Persistence.Repositories;
+
+/// <summary>
+/// Task repository implementation
+/// </summary>
+public class TaskRepository : ITaskRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public TaskRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<TaskItem?> GetByIdAsync(Guid id)
+    {
+        return await _context.Tasks
+            .Include(t => t.Goal)
+            .FirstOrDefaultAsync(t => t.Id == id);
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetUserTasksAsync(Guid userId)
+    {
+        return await _context.Tasks
+            .Where(t => t.UserId == userId)
+            .Include(t => t.Goal)
+            .OrderBy(t => t.Priority)
+            .ThenBy(t => t.DueDate)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetActiveUserTasksAsync(Guid userId)
+    {
+        return await _context.Tasks
+            .Where(t => t.UserId == userId && t.Status != TaskStatus.Completed && t.Status != TaskStatus.Cancelled)
+            .Include(t => t.Goal)
+            .OrderBy(t => t.Priority)
+            .ThenBy(t => t.DueDate)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetGoalTasksAsync(Guid goalId)
+    {
+        return await _context.Tasks
+            .Where(t => t.GoalId == goalId)
+            .OrderBy(t => t.Priority)
+            .ThenBy(t => t.DueDate)
+            .ToListAsync();
+    }
+
+    public async Task<TaskItem> AddAsync(TaskItem task)
+    {
+        if (task.UserId == Guid.Empty)
+            throw new ArgumentException("UserId cannot be empty");
+
+        task.CreatedAt = DateTime.UtcNow;
+        task.UpdatedAt = DateTime.UtcNow;
+        _context.Tasks.Add(task);
+        await _context.SaveChangesAsync();
+        return task;
+    }
+
+    public async Task<TaskItem> UpdateAsync(TaskItem task)
+    {
+        task.UpdatedAt = DateTime.UtcNow;
+        if (task.Status == TaskStatus.Completed && task.CompletedAt == null)
+        {
+            task.CompletedAt = DateTime.UtcNow;
+        }
+        _context.Tasks.Update(task);
+        await _context.SaveChangesAsync();
+        return task;
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var task = await _context.Tasks.FindAsync(id);
+        if (task != null)
+        {
+            task.Status = TaskStatus.Cancelled;
+            task.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+        }
+    }
+}
