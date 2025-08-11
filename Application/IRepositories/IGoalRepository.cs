@@ -1,6 +1,6 @@
 using Domain.Entities;
 
-namespace Infrastructure.Repositories;
+namespace Application.IRepositories;
 
 /// <summary>
 /// Goal repository interface for goal management operations

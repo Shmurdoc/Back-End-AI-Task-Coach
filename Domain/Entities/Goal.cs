@@ -78,7 +78,7 @@ public class Goal : BaseEntity
 
     public void MarkAsCompleted()
     {
-        if (Tasks != null && Tasks.Any(t => t.Status != TaskStatus.Completed))
+        if (Tasks != null && Tasks.Any(t => t.Status != Domain.Enums.TaskStatus.Completed))
             throw new InvalidOperationException("Cannot complete goal until all tasks are done.");
         Status = GoalStatus.Completed;
         CompletedAt = DateTime.UtcNow;
