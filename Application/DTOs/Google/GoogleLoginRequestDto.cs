@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTO.Google
+namespace Application.DTOs.Google
 {
     public record GoogleLoginRequestDto(
     [Required] string IdToken

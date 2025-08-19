@@ -1,3 +1,7 @@
-namespace Application.DTO;
+namespace Application.DTOs;
 
-public record ProductivitySummaryDto(int GoalsCompleted, int HabitsTracked, int TasksCompleted);
+public record ProductivitySummaryDto(
+    int GoalsCompleted,
+    int HabitsTracked,
+    int TasksCompleted
+);

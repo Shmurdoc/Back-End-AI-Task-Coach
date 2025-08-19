@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTO.Login
+namespace Application.DTOs.Login
 {
     public record ResetPasswordRequestDto(
     [Required] string Email

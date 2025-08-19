@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.DTO;
+namespace Application.DTOs;
 
 public record WeeklyReportRequest(
     [Required] Guid UserId,

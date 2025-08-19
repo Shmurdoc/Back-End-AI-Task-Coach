@@ -15,115 +15,32 @@ public class TaskItem : BaseEntity
     [Required]
     [StringLength(200)]
     public string Title { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Detailed task description
-    /// </summary>
     [StringLength(1000)]
     public string Description { get; set; } = string.Empty;
-
-    /// <summary>
-    /// Current task status
-    /// </summary>
     [Required]
-    public Domain.Enums.TaskStatus Status { get; set; } = Domain.Enums.TaskStatus.Todo;
-
-    /// <summary>
-    /// Task priority for AI scheduling
-    /// </summary>
+    public TaskItemStatus Status { get; set; } = TaskItemStatus.Todo;
     [Required]
     public TaskPriority Priority { get; set; } = TaskPriority.Medium;
-
-    /// <summary>
-    /// Due date for deadline tracking
-    /// </summary>
-    public DateTime? DueDate { get; set; }
-
-    /// <summary>
-    /// Estimated time to complete (in hours)
-    /// </summary>
     [Range(0.1, 1000)]
     public double EstimatedHours { get; set; }
-
-    /// <summary>
-    /// Actual time spent (in hours) for AI accuracy improvement
-    /// </summary>
     [Range(0, 1000)]
     public double ActualHours { get; set; }
-
-    /// <summary>
-    /// Task completion percentage (0-100)
-    /// </summary>
     [Range(0, 100)]
     public int CompletionPercentage { get; set; }
-
-    /// <summary>
-    /// Task completion date
-    /// </summary>
     public DateTime? CompletedAt { get; set; }
-
-    /// <summary>
-    /// Task start date for time tracking
-    /// </summary>
     public DateTime? StartedAt { get; set; }
-
-    /// <summary>
-    /// Tags for AI classification
-    /// </summary>
     public string[] Tags { get; set; } = Array.Empty<string>();
-
-    /// <summary>
-    /// AI-generated suggestions and insights
-    /// </summary>
     public string? AISuggestions { get; set; } // AI-generated recommendations
-
-    /// <summary>
-    /// Task dependencies for smart scheduling
-    /// </summary>
     public Guid[] Dependencies { get; set; } = Array.Empty<Guid>();
-
-    /// <summary>
-    /// Energy level required (1-5) for optimal scheduling
-    /// </summary>
     [Range(1, 5)]
     public int EnergyLevel { get; set; } = 3;
-
-    /// <summary>
-    /// Focus time required (in minutes) for AI scheduling
-    /// </summary>
     [Range(5, 480)]
     public int FocusTimeMinutes { get; set; } = 30;
-
-    // Foreign keys
-    /// <summary>
-    /// Task owner user ID
-    /// </summary>
     public Guid UserId { get; set; }
-
-    /// <summary>
-    /// Associated goal ID (optional)
-    /// </summary>
     public Guid? GoalId { get; set; }
-
-    // Navigation properties
-    /// <summary>
-    /// Task owner
-    /// </summary>
     public virtual User User { get; set; } = null!;
-
-    /// <summary>
-    /// Associated goal (if any)
-    /// </summary>
     public virtual Goal? Goal { get; set; }
-
-    /// <summary>
-    /// Time tracking entries for detailed analytics
-    /// </summary>
     public virtual ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
-
-    /// <summary>
-    /// Task status history for AI pattern analysis
-    /// </summary>
     public virtual ICollection<TaskStatusHistory> StatusHistory { get; set; } = new List<TaskStatusHistory>();
 }
 
@@ -159,9 +76,9 @@ public class TaskStatusHistory
 {
     public Guid Id { get; set; }
 
-    public Domain.Enums.TaskStatus FromStatus { get; set; }
+    public TaskItemStatus FromStatus { get; set; }
 
-    public Domain.Enums.TaskStatus ToStatus { get; set; }
+    public TaskItemStatus ToStatus { get; set; }
 
     [StringLength(500)]
     public string? Reason { get; set; }
