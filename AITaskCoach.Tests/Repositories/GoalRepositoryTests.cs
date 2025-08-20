@@ -1,4 +1,3 @@
-
 using AITaskCoach.Tests.Infrastructure;
 using FluentAssertions;
 using Xunit;
@@ -128,3 +127,4 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
         deletedGoal.Should().BeNull();
     }
 }
+

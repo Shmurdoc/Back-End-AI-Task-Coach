@@ -1,4 +1,3 @@
-
 using AITaskCoach.Tests.Infrastructure;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -48,16 +47,16 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
     {
         // Arrange
         var task = Fixture.Create<TaskItem>();
-        task.Id = Guid.NewGuid(); // Reset Id for new entity
+        task.Id = Guid.Empty; // Reset Id for new entity
 
         // Act
         var result = await _repository.AddAsync(task);
 
         // Assert
         result.Should().NotBeNull();
-        result.Id.Should().BeEmpty();
+        result.Id.Should().NotBe(Guid.Empty);
         result.Title.Should().Be(task.Title);
-        
+
         var savedTask = await _repository.GetByIdAsync(result.Id);
         savedTask.Should().NotBeNull();
     }
@@ -91,11 +90,11 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
         await SeedDatabaseAsync(task);
 
         // Act
-        var result = _repository.DeleteAsync(task.Id);
+        var result =  _repository.DeleteAsync(task.Id);
 
         // Assert
         result.Should().Be(true);
-        
+
         var deletedTask = await _repository.GetByIdAsync(task.Id);
         deletedTask.Should().BeNull();
     }
@@ -107,9 +106,10 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
         var invalidId = Fixture.Create<Guid>();
 
         // Act
-        var result = _repository.DeleteAsync(invalidId);
+        var result =  _repository.DeleteAsync(invalidId);
 
         // Assert
         result.Should().Be(false);
     }
 }
+
