@@ -11,5 +11,5 @@ using System.Threading.Tasks;
 namespace Application.CQRS.Features.Commands.Habits
 {
     // UpdateGoalCommand.cs
-    public record UpdateHabitCommand(Guid Id, UpdateHabitDto Dto) : IRequest<Habit>;
+    public record UpdateHabitCommand(Guid Id, UpdateHabitDto Dto) : IRequest<HabitDto>;
 }

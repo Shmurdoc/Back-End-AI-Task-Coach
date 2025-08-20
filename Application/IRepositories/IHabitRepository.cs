@@ -16,4 +16,6 @@ public interface IHabitRepository
     Task<Dictionary<DayOfWeek, double>> GetCompletionRateByDayOfWeekAsync(Guid habitId);
     Task<Dictionary<int, double>> GetCompletionRateByHourAsync(Guid habitId);
     Task CreateAnalyticsAsync(Guid habitId);
+
+    Task<int>SaveChangesAsync(CancellationToken cancellationToken); // Optional, if you want to handle SaveChanges in the repository
 }

@@ -9,5 +9,5 @@ using System.Threading.Tasks;
 
 namespace Application.CQRS.Features.Queries.Goals
 {
-    public record ListGoalsQuery : IRequest<List<Goal>>;
+    public record ListGoalsQuery : IRequest<List<GoalDto>>;
 }

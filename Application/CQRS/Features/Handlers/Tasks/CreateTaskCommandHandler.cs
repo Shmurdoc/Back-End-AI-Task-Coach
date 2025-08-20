@@ -1,42 +1,22 @@
-using MediatR;
-using Domain.Entities;
 using Application.CQRS.Features.Commands.Tasks;
-using Application.IRepositories;
+using Application.DTOs.TaskDtos;
+using Application.IService;
+using MediatR;
 
 namespace Application.CQRS.Features.Handlers.Tasks;
 
-public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskItem>
+public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskDto>
 {
-    private readonly ITaskRepository _taskRepository;
+    private readonly ITaskService _taskService;
 
-    public CreateTaskCommandHandler(ITaskRepository taskRepository)
+    public CreateTaskCommandHandler(ITaskService taskService)
     {
-        _taskRepository = taskRepository;
+        _taskService = taskService;
     }
 
-    public async Task<TaskItem> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
+    public async Task<TaskDto> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
     {
-        var task = new TaskItem
-        {
-            Id = Guid.NewGuid(),
-            UserId = request.UserId,
-            Title = request.Title,
-            Description = request.Description ?? string.Empty,
-            CompletedAt = request.DueDate,
-            StartedAt = request.StartedAt,
-            Priority = request.Priority,
-            Status = request.Status,
-            EstimatedHours = request.EstimatedHours,
-            ActualHours = 0,
-            CompletionPercentage = 0,
-            Tags = request.Tags ?? Array.Empty<string>(),
-            AISuggestions = null,
-            EnergyLevel = request.EnergyLevel,
-            FocusTimeMinutes = request.FocusTimeMinutes,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        return await _taskRepository.AddAsync(task);
+        return await _taskService.CreateTaskAsync(request.Dto, cancellationToken);
     }
+    
 }

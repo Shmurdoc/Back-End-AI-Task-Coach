@@ -9,5 +9,5 @@ using System.Threading.Tasks;
 
 namespace Application.CQRS.Features.Commands.Habits
 {
-    public record DeleteTaskCommand(Guid Id, UpdateTaskDto Dto) : IRequest<Task>;
+    public record DeleteTaskCommand(Guid Id) : IRequest<bool>;
 }

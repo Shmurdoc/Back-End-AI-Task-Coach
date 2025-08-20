@@ -1,8 +1,10 @@
+
+
 using Application.IRepositories;
 using Domain.Entities;
+using Domain.Enums;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
-using TaskStatus = Domain.Enums.TaskStatus;
 
 namespace Infrastructure.Persistence.Repositories;
 
@@ -31,17 +33,17 @@ public class TaskRepository : ITaskRepository
             .Where(t => t.UserId == userId)
             .Include(t => t.Goal)
             .OrderBy(t => t.Priority)
-            .ThenBy(t => t.DueDate)
+            .ThenBy(t => t.CompletedAt)
             .ToListAsync();
     }
 
     public async Task<IEnumerable<TaskItem>> GetActiveUserTasksAsync(Guid userId)
     {
         return await _context.Tasks
-            .Where(t => t.UserId == userId && t.Status != TaskStatus.Completed && t.Status != TaskStatus.Cancelled)
+            .Where(t => t.UserId == userId && t.Status != TaskItemStatus.Completed && t.Status != TaskItemStatus.Cancelled)
             .Include(t => t.Goal)
             .OrderBy(t => t.Priority)
-            .ThenBy(t => t.DueDate)
+            .ThenBy(t => t.CompletedAt)
             .ToListAsync();
     }
 
@@ -50,7 +52,7 @@ public class TaskRepository : ITaskRepository
         return await _context.Tasks
             .Where(t => t.GoalId == goalId)
             .OrderBy(t => t.Priority)
-            .ThenBy(t => t.DueDate)
+            .ThenBy(t => t.CompletedAt)
             .ToListAsync();
     }
 
@@ -69,7 +71,7 @@ public class TaskRepository : ITaskRepository
     public async Task<TaskItem> UpdateAsync(TaskItem task)
     {
         task.UpdatedAt = DateTime.UtcNow;
-        if (task.Status == TaskStatus.Completed && task.CompletedAt == null)
+        if (task.Status == TaskItemStatus.Completed && task.CompletedAt == null)
         {
             task.CompletedAt = DateTime.UtcNow;
         }
@@ -83,7 +85,7 @@ public class TaskRepository : ITaskRepository
         var task = await _context.Tasks.FindAsync(id);
         if (task != null)
         {
-            task.Status = TaskStatus.Cancelled;
+            task.Status = TaskItemStatus.Cancelled;
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }

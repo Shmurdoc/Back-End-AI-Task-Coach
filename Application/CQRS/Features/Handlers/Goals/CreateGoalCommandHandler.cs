@@ -1,43 +1,29 @@
 using Application.CQRS.Features.Commands.Goals;
+using Application.DTOs.GoalDtos;
 using Application.IRepositories;
+using Application.IService;
 using Domain.Entities;
 using MediatR;
 
 namespace Application.CQRS.Features.Handlers.Goals;
 
-public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, Goal>
+public class CreateGoalCommandHandler : IRequestHandler<CreateGoalCommand, GoalDto>
 {
-    private readonly IGoalRepository _goalRepository;
-    private readonly IUserContext _userContext;
+    private readonly IGoalService _goalService;
 
-    public CreateGoalCommandHandler(IGoalRepository goalRepository, IUserContext userContext)
+    public CreateGoalCommandHandler(IGoalService goalService)
     {
-        _goalRepository = goalRepository;
-        _userContext = userContext;
+       _goalService = goalService;
     }
 
-    public async Task<Goal> Handle(CreateGoalCommand request, CancellationToken cancellationToken)
+    public async Task<GoalDto> Handle(CreateGoalCommand request, CancellationToken cancellationToken)
     {
-
-        //var userId = _userContext.GetCurrentUserId();
-        var b1b6edf2 = new Guid("b1b6edf2-d505-47fb-b696-fc1c8a86ebde"); // Replace with actual user ID retrieval logic
-        var userId = b1b6edf2;
-
-        var goal = new Goal
+        // 1. Validate the request data (e.g., check if the goal name is not empty).
+        if (string.IsNullOrWhiteSpace(request.CreateGoalDto.Title))
         {
-            Id = Guid.NewGuid(),
-            UserId = userId,
-            Title = request.CreateGoalDto.Title,
-            Description = request.CreateGoalDto.Description ?? string.Empty,
-            Category = request.CreateGoalDto.Category,
-            Priority = request.CreateGoalDto.Priority,
-            TargetDate = request.CreateGoalDto.TargetDate,
-            Status = Domain.Enums.GoalStatus.NotStarted,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        var createdGoal = await _goalRepository.AddAsync(goal);
+            throw new ArgumentException("Goal name cannot be empty.", nameof(request.CreateGoalDto.Title));
+        }
+        var goal = await _goalService.CreateGoalAsync(request.CreateGoalDto,cancellationToken);
 
         return goal;
     }

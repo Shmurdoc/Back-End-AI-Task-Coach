@@ -220,4 +220,9 @@ public class HabitRepository : IHabitRepository
         var change = (double)(recentWeek - previousWeek) / previousWeek;
         return Math.Max(-1.0, Math.Min(1.0, change));
     }
+
+    public async Task<int>SaveChangesAsync(CancellationToken cancellationToken)
+    {
+      return await _context.SaveChangesAsync(cancellationToken);
+    }
 }

@@ -1,6 +1,7 @@
 using Application.CQRS.Features.Queries.Goals;
 using Application.DTOs.GoalDtos;
 using Application.IRepositories;
+using Application.IService;
 using Domain.Entities;
 using Domain.Enums;
 using MediatR;
@@ -9,39 +10,17 @@ namespace Application.CQRS.Features.Handlers.Goals;
 
 public class GetUserGoalsQueryHandler : IRequestHandler<GetUserGoalsQuery, IEnumerable<GoalDto>>
 {
-    private readonly IGoalRepository _goalRepository;
+    private readonly IGoalService _goalService;
 
-    public GetUserGoalsQueryHandler(IGoalRepository goalRepository)
+    public GetUserGoalsQueryHandler(IGoalRepository goalRepository, IGoalService goalService)
     {
-        _goalRepository = goalRepository;
+        _goalService = goalService;
     }
 
     public async Task<IEnumerable<GoalDto>> Handle(GetUserGoalsQuery request, CancellationToken cancellationToken)
     {
-        var goals = await _goalRepository.GetUserGoalsAsync(request.UserId);
-        return goals.Select(MapToGoalDto).ToList();
-    }
+        var goals = await _goalService.GetUserGoal(request.UserId);
 
-    private static GoalDto MapToGoalDto(Goal goal)
-    {
-        double progress = 0;
-        if (goal.Tasks != null && goal.Tasks.Count > 0)
-        {
-            var completed = goal.Tasks.Count(t => t.Status == TaskItemStatus.Completed);
-            progress = Math.Round((double)completed / goal.Tasks.Count * 100, 2);
-        }
-
-        return new GoalDto(
-            goal.Id,
-            goal.Title,
-            goal.Description ?? string.Empty,
-            goal.Category,
-            goal.Status,
-            goal.Priority,
-            goal.TargetDate,
-            goal.CreatedAt,
-            goal.CompletedAt,
-            progress
-        );
+        return goals;
     }
 }

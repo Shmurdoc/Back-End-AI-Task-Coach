@@ -1,9 +1,17 @@
-namespace Application.CQRS.Tasks;
+using Domain.Enums;
+
+namespace Application.DTOs.TaskDtos;
 
 public record CreateTaskDto(
     string Title,
-    string Description,
-    Guid? GoalId,
-    int Priority,
-    DateTime? DueDate
+    string? Description,
+    TaskItemStatus Status,
+    TaskPriority Priority,
+    double EstimatedHours,
+    DateTime? DueDate,
+    string[]? Tags,
+    Guid[]? Dependencies,
+    int EnergyLevel,
+    int FocusTimeMinutes,
+    Guid? GoalId
 );

@@ -2,20 +2,22 @@ using MediatR;
 using Application.CQRS.Features.Queries.Habits;
 using Application.IRepositories;
 using Domain.Entities;
+using Application.DTOs.HabitDtos;
+using Application.IService;
 
 namespace Application.CQRS.Features.Handlers.Habits;
 
-public class GetUserHabitsQueryHandler : IRequestHandler<GetUserHabitsQuery, IEnumerable<Habit>>
+public class GetUserHabitsQueryHandler : IRequestHandler<GetUserHabitsQuery, IEnumerable<HabitDto>>
 {
-    private readonly IHabitRepository _habitRepository;
+    private readonly IHabitService _habitService;
 
-    public GetUserHabitsQueryHandler(IHabitRepository habitRepository)
+    public GetUserHabitsQueryHandler(IHabitService habitService)
     {
-        _habitRepository = habitRepository;
+        _habitService = habitService;
     }
 
-    public async Task<IEnumerable<Habit>> Handle(GetUserHabitsQuery request, CancellationToken cancellationToken)
+    public async Task<IEnumerable<HabitDto>> Handle(GetUserHabitsQuery request, CancellationToken cancellationToken)
     {
-        return await _habitRepository.GetUserHabitsAsync(request.UserId);
+        return await _habitService.GetUserHabitsAsync(request.UserId);
     }
 }

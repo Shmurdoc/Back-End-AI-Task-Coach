@@ -11,5 +11,5 @@ using System.Threading.Tasks;
 namespace Application.CQRS.Features.Commands.Habits
 {
     // DeleteGoalCommand.cs
-    public record DeleteHabitCommand(Guid Id) : IRequest;
+    public record DeleteHabitCommand(Guid Id) : IRequest<bool>;
 }

@@ -14,4 +14,5 @@ public interface IGoalRepository
     Task<Goal> AddAsync(Goal goal);
     Task<Goal> UpdateAsync(Goal goal);
     Task DeleteAsync(Guid id);
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

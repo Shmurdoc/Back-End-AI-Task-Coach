@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace Application.IService
+{
+    public interface IAIService
+    {
+        Task<string> GetTaskSuggestionAsync(string taskDescription);
+        Task<string> AnalyzeUserPatternsAsync(Guid userId);
+    }
+}

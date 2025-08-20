@@ -1,4 +1,5 @@
-﻿using Domain.Entities;
+﻿using Application.DTOs.TaskDtos;
+using Domain.Entities;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -8,5 +9,5 @@ using System.Threading.Tasks;
 
 namespace Application.CQRS.Features.Queries.Tasks
 {
-    public record GetTasksByIdQuery(Guid TaskId, Guid UserId) : IRequest<Task?>;
+    public record GetTasksByIdQuery(Guid TaskId, Guid UserId) : IRequest<TaskDto?>;
 }

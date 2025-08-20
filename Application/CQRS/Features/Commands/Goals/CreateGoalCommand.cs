@@ -4,4 +4,4 @@ using MediatR;
 
 namespace Application.CQRS.Features.Commands.Goals;
 
-public record CreateGoalCommand(CreateGoalDto CreateGoalDto) : IRequest<Goal>;
+public record CreateGoalCommand(CreateGoalDto CreateGoalDto) : IRequest<GoalDto>;

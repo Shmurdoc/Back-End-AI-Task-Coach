@@ -1,17 +1,22 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Domain.Enums;
 
-namespace Application.DTOs.HabitDtos
-{
-    public record CreateHabitDto(
-        string Name,
-        string Description, 
-        DateTime StartDate, 
-        DateTime EndDate, 
-        int Frequency, 
-        bool IsActive);
+namespace Application.DTOs.HabitDtos;
 
-}
+public record CreateHabitDto(
+    string Name,
+    string? Description,
+    HabitFrequency Frequency,
+    TimeSpan? PreferredTime,
+    int TargetCount,
+    string Unit,
+    string Color,
+    string Icon,
+    string? Motivation,
+    HabitCategory Category,
+    string[]? Triggers,
+    string[]? Rewards,
+    int DifficultyLevel,
+    string? EnvironmentFactors
+);
+       

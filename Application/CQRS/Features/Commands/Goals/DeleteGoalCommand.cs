@@ -10,5 +10,5 @@ using System.Threading.Tasks;
 namespace Application.CQRS.Features.Commands.Goals
 {
     // DeleteGoalCommand.cs
-    public record DeleteGoalCommand(Guid Id) : IRequest;
+    public record DeleteGoalCommand(Guid Id) : IRequest<bool>;
 }
