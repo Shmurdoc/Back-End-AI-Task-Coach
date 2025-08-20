@@ -152,14 +152,22 @@ public class HabitService : IHabitService
     {
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) throw new InvalidOperationException("Habit not found.");
-
         if (dto.Name is not null) habit.Name = dto.Name;
         if (dto.Description is not null) habit.Description = dto.Description;
+        if (dto.Frequency is not null) habit.Frequency = dto.Frequency.Value;
+        if (dto.PreferredTime is not null) habit.PreferredTime = dto.PreferredTime;
+        if (dto.TargetCount is not null) habit.TargetCount = dto.TargetCount.Value;
+        if (dto.Unit is not null) habit.Unit = dto.Unit;
+        if (dto.Color is not null) habit.Color = dto.Color;
+        if (dto.Icon is not null) habit.Icon = dto.Icon;
+        if (dto.Motivation is not null) habit.Motivation = dto.Motivation;
         if (dto.IsActive is not null) habit.IsActive = dto.IsActive.Value;
-        if (dto.TargetStreak is not null) habit.BestStreak = dto.TargetStreak.Value;
-        if (dto.Priority is not null) habit.DifficultyLevel = dto.Priority.Value;
-        if (dto.StartDate is not null) habit.CreatedAt = dto.StartDate.Value;
-        if (dto.EndDate is not null) habit.UpdatedAt = dto.EndDate.Value;
+        if (dto.Category is not null) habit.Category = dto.Category.Value;
+        if (dto.Triggers is not null) habit.Triggers = dto.Triggers;
+        if (dto.Rewards is not null) habit.Rewards = dto.Rewards;
+        if (dto.DifficultyLevel is not null) habit.DifficultyLevel = dto.DifficultyLevel.Value;
+        if (dto.EnvironmentFactors is not null) habit.EnvironmentFactors = dto.EnvironmentFactors;
+        habit.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _habitRepository.UpdateAsync(habit);
         return new HabitDto(

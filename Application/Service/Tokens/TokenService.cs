@@ -1,5 +1,6 @@
-﻿using AI_Coach_TaskFlow.Models;
+﻿
 using Application.IService;
+using Domain.Entities;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
