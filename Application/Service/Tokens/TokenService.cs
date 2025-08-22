@@ -7,13 +7,19 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
-namespace Application.Service.Tokens
+namespace Application.Services
 {
     public class TokenService : ITokenService
     {
         private readonly JwtSettings _jwtSettings;
         private readonly SymmetricSecurityKey _signingKey;
         private readonly JwtSecurityTokenHandler _tokenHandler;
+        public async Task<string> GenerateTokenAsync(string email, string password, CancellationToken cancellationToken = default)
+        {
+            // TODO: Implement actual authentication logic
+            // For now, return a dummy token or throw NotImplementedException
+            return await Task.FromResult("dummy_token");
+        }
 
         public TokenService(IOptions<JwtSettings> jwtSettings)
         {
@@ -56,6 +62,17 @@ namespace Application.Service.Tokens
             );
 
             return _tokenHandler.WriteToken(token);
+        }
+        public async Task<string> GenerateTokenAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default)
+        {
+            // Delegate to sync method for now
+            return await Task.FromResult(GenerateToken(userId, email, username));
+        }
+
+        public async Task<string> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+        {
+            // TODO: Implement refresh logic
+            return await Task.FromResult("new_token");
         }
     }
 }
