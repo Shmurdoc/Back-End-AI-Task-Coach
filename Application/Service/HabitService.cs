@@ -16,7 +16,7 @@ public class HabitService : IHabitService
         _userContext = userContext;
     }
 
-    public async Task<HabitDto> CreateHabitAsync(CreateHabitDto request, CancellationToken cancellationToken)
+    public async Task<HabitDto?> CreateHabitAsync(CreateHabitDto request, CancellationToken cancellationToken)
     {
         var userId = _userContext.GetCurrentUserId();
         var habit = new Habit

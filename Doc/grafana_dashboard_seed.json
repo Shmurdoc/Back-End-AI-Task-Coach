@@ -1,0 +1,59 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "ai-coach-backend",
+    "title": "AI Coach Backend Overview",
+    "tags": [
+      "ai",
+      "backend"
+    ],
+    "timezone": "browser",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Nudges Delivered",
+        "targets": [
+          {
+            "expr": "nudges_delivered"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Tasks Rescheduled",
+        "targets": [
+          {
+            "expr": "tasks_rescheduled"
+          }
+        ],
+        "gridPos": {
+          "x": 12,
+          "y": 0,
+          "w": 12,
+          "h": 8
+        }
+      },
+      {
+        "type": "graph",
+        "title": "Critical Mode Activations",
+        "targets": [
+          {
+            "expr": "critical_mode_activations"
+          }
+        ],
+        "gridPos": {
+          "x": 0,
+          "y": 8,
+          "w": 24,
+          "h": 8
+        }
+      }
+    ]
+  }
+}

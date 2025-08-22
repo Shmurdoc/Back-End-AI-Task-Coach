@@ -62,6 +62,11 @@ public class GoalService : IGoalService
     {
         var goal = _goalRepository.GetUserGoalsAsync(userId).Result.FirstOrDefault();
         double progress = 0;
+        if (goal == null)
+        {
+            return Task.FromResult<IEnumerable<GoalDto>>(new List<GoalDto>());
+        }
+
         if (goal.Tasks != null && goal.Tasks.Count > 0)
         {
             var completed = goal.Tasks.Count(t => t.Status == TaskItemStatus.Completed);

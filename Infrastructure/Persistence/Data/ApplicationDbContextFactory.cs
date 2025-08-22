@@ -10,6 +10,10 @@ namespace Infrastructure.Persistence.Data;
 public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
 {
     private readonly IConfiguration configuration;
+    public ApplicationDbContextFactory(IConfiguration configuration)
+    {
+        this.configuration = configuration;
+    }
     public ApplicationDbContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();

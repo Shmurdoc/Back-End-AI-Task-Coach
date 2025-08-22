@@ -17,9 +17,9 @@ public class CreateHabitCommandHandler : IRequestHandler<CreateHabitCommand, Hab
 
     public async Task<HabitDto> Handle(CreateHabitCommand request, CancellationToken cancellationToken)
     {
-        return await _habitService.CreateHabitAsync(request.CreateHabitDto, cancellationToken);
+        return await _habitService.CreateHabitAsync(request.CreateHabitDto, cancellationToken) ?? null!;
     }
 }
-    
-        
-    
+
+
+

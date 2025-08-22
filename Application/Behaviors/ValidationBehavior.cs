@@ -4,6 +4,7 @@ using MediatR;
 namespace Application.Behaviors
 {
     public class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
+        where TRequest : IRequest<TResponse>
     {
         private readonly IEnumerable<IValidator<TRequest>> _validators;
 
@@ -21,12 +22,11 @@ namespace Application.Behaviors
                 var failures = validationResults.SelectMany(r => r.Errors).Where(f => f != null).ToList();
 
                 if (failures.Count != 0)
-                {
-                    throw new FluentValidation.ValidationException(failures);
-                }
+                    throw new ValidationException(failures);
             }
 
             return await next();
         }
     }
 }
+   

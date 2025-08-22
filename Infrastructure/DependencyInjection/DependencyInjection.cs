@@ -1,4 +1,5 @@
 using Application.IRepositories;
+using Application.Services;
 using Infrastructure.Persistence.Data;
 using Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -22,6 +23,10 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IGoalRepository, GoalRepository>(); 
 
+        services.AddScoped<SmtpEmailProvider>();
+        services.AddScoped<SmsProvider>();
+        services.AddScoped<NotificationFactory>();
+        services.AddScoped<INotificationService, NotificationService>();
         return services;
     }
 }
