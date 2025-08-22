@@ -19,14 +19,14 @@ public class CalendarExportService : ICalendarExportService
         sb.Append(IcsHeader("Daily"));
         var start = date.Date; var end = date.Date.AddDays(1);
         var tasks = await _tasks.GetActiveUserTasksAsync(userId);
-        foreach (var t in tasks.Where(t => t.StartTime.Date == date.Date))
+    foreach (var t in tasks.Where(t => t.StartTime.HasValue && t.StartTime.Value.Date == date.Date))
         {
             var uid = Guid.NewGuid();
             sb.AppendLine("BEGIN:VEVENT");
             sb.AppendLine($"UID:{uid}@aitaskcoach");
             sb.AppendLine($"DTSTAMP:{DateTime.UtcNow:yyyyMMddTHHmmssZ}");
-            sb.AppendLine($"DTSTART:{t.StartTime:yyyyMMddTHHmmssZ}");
-            var evEnd = t.EndTime ?? t.StartTime.AddHours(Math.Max(1, t.EstimatedHours));
+            sb.AppendLine($"DTSTART:{(t.StartTime.HasValue ? t.StartTime.Value.ToString("yyyyMMddTHHmmssZ") : "")}");
+            var evEnd = t.EndTime ?? (t.StartTime.HasValue ? t.StartTime.Value.AddHours(Math.Max(1, t.EstimatedHours)) : DateTime.UtcNow.AddHours(1));
             sb.AppendLine($"DTEND:{evEnd:yyyyMMddTHHmmssZ}");
             sb.AppendLine($"SUMMARY:{t.Title.Replace("\n"," ")}");
             sb.AppendLine("END:VEVENT");
@@ -41,14 +41,14 @@ public class CalendarExportService : ICalendarExportService
         sb.Append(IcsHeader("Weekly"));
         var weekEnd = weekStart.Date.AddDays(7);
         var tasks = await _tasks.GetActiveUserTasksAsync(userId);
-        foreach (var t in tasks.Where(t => t.StartTime >= weekStart && (t.EndTime ?? t.StartTime) <= weekEnd))
+    foreach (var t in tasks.Where(t => t.StartTime.HasValue && t.StartTime.Value >= weekStart && (t.EndTime ?? t.StartTime.Value) <= weekEnd))
         {
             var uid = Guid.NewGuid();
             sb.AppendLine("BEGIN:VEVENT");
             sb.AppendLine($"UID:{uid}@aitaskcoach");
             sb.AppendLine($"DTSTAMP:{DateTime.UtcNow:yyyyMMddTHHmmssZ}");
-            sb.AppendLine($"DTSTART:{t.StartTime:yyyyMMddTHHmmssZ}");
-            var evEnd = t.EndTime ?? t.StartTime.AddHours(Math.Max(1, t.EstimatedHours));
+            sb.AppendLine($"DTSTART:{(t.StartTime.HasValue ? t.StartTime.Value.ToString("yyyyMMddTHHmmssZ") : "")}");
+            var evEnd = t.EndTime ?? (t.StartTime.HasValue ? t.StartTime.Value.AddHours(Math.Max(1, t.EstimatedHours)) : DateTime.UtcNow.AddHours(1));
             sb.AppendLine($"DTEND:{evEnd:yyyyMMddTHHmmssZ}");
             sb.AppendLine($"SUMMARY:{t.Title.Replace("\n"," ")}");
             sb.AppendLine("END:VEVENT");

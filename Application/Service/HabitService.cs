@@ -203,4 +203,60 @@ public class HabitService : IHabitService
         await _habitRepository.DeleteAsync(habitId);
         return true;
     }
+    // Controller-compatible methods
+    public async Task<HabitDto?> GetHabitAsync(Guid id)
+    {
+        // Delegate to GetHabitByIdAsync with default CancellationToken
+        return await GetHabitByIdAsync(id, CancellationToken.None);
+    }
+
+    public async Task<HabitDto?> CreateHabitAsync(HabitDto dto)
+    {
+        // Map HabitDto to CreateHabitDto and delegate
+        var createDto = new CreateHabitDto(
+            dto.Name,
+            dto.Description,
+            dto.Frequency,
+            dto.PreferredTime,
+            dto.TargetCount,
+            dto.Unit,
+            dto.Color,
+            dto.Icon,
+            dto.Motivation,
+            dto.Category,
+            dto.Triggers,
+            dto.Rewards,
+            dto.DifficultyLevel,
+            dto.EnvironmentFactors
+        );
+        return await CreateHabitAsync(createDto, CancellationToken.None);
+    }
+
+    public async Task UpdateHabitAsync(HabitDto dto)
+    {
+        // Map HabitDto to UpdateHabitDto and call the main update method
+        var updateDto = new UpdateHabitDto(
+            Name: dto.Name,
+            Description: dto.Description,
+            Frequency: dto.Frequency,
+            PreferredTime: dto.PreferredTime,
+            TargetCount: dto.TargetCount,
+            Unit: dto.Unit,
+            Color: dto.Color,
+            Icon: dto.Icon,
+            Motivation: dto.Motivation,
+            Category: dto.Category,
+            Triggers: dto.Triggers,
+            Rewards: dto.Rewards,
+            DifficultyLevel: dto.DifficultyLevel,
+            EnvironmentFactors: dto.EnvironmentFactors,
+            IsActive: dto.IsActive
+        );
+        await UpdateHabitAsync(dto.Id, updateDto, CancellationToken.None);
+    }
+
+    public async Task DeleteHabitAsync(Guid id)
+    {
+        await DeleteHabitAsync(id, CancellationToken.None);
+    }
 }

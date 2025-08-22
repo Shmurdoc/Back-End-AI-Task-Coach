@@ -5,7 +5,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
-using WebAPI.Extensions;
+using Application.Extensions;
 
 namespace Application.Services;
 

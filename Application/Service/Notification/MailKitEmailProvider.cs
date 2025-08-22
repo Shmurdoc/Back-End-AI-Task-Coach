@@ -1,3 +1,4 @@
+using Application.Extensions;
 using Application.IService;
 using Domain.Entities;
 using MailKit.Net.Smtp;
@@ -63,7 +64,7 @@ public class MailKitEmailProvider : INotificationProvider
                 await smtp.SendAsync(email, ct);
                 await smtp.DisconnectAsync(true, ct);
 
-                ObservabilityExtensions.NudgesDelivered.Add(1, new("provider", Name), new("type", "email"));
+                ObservabilityExtensions.NudgesDelivered.Add(1, new KeyValuePair<string, object?>("provider", Name), new KeyValuePair<string, object?>("type", "email"));
                 _logger.LogInformation("Email sent successfully to {Email}", user.Email);
                 return true;
             });

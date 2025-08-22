@@ -34,5 +34,21 @@ public class AnalyticsService : IAnalyticsService
         return new ProductivitySummaryDto(goalsCompleted, habitsTracked, tasksCompleted);
     }
 
-    // ...other analytics logic as needed...
+    public async Task<ProductivitySummaryDto> GetProductivitySummaryAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement summary logic
+        return await CalculateUserStats(userId);
+    }
+
+    public async Task GenerateUserReportAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement user report generation
+        await Task.CompletedTask;
+    }
+
+    public async Task GetHabitSummaryAsync(Guid userId, CancellationToken cancellationToken = default)
+    {
+        // TODO: Implement habit summary logic
+        await Task.CompletedTask;
+    }
 }
