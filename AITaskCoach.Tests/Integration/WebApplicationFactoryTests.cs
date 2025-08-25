@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
 using Xunit;
 using FluentAssertions;
-using Infrastructure.Data;
+using Infrastructure.Persistence.Data;
 
 namespace AITaskCoach.Tests.Integration;
 

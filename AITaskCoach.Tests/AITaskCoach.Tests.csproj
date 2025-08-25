@@ -10,6 +10,8 @@
 
   <ItemGroup>
     <!-- xUnit for unit testing -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.*" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.3.1" />
     <PackageReference Include="xunit" Version="2.6.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
@@ -25,7 +27,7 @@
     <!-- Code coverage (optional, but recommended) -->
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <!-- ASP.NET Core HTTP Features -->
-    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.2.0" />
+  <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.3.0" />
     <!-- MediatR for CQRS pattern implementation -->
     <PackageReference Include="MediatR" Version="11.1.0" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />
@@ -35,9 +37,10 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
     <ProjectReference Include="..\Application\Application.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\WebAPI\WebAPI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="11.6.0" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
   </ItemGroup>
 </Project>
