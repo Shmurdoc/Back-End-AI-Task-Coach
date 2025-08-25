@@ -10,5 +10,5 @@ public interface ITaskRepository
     Task<IEnumerable<TaskItem>> GetGoalTasksAsync(Guid goalId);
     Task<TaskItem> AddAsync(TaskItem task);
     Task<TaskItem> UpdateAsync(TaskItem task);
-    Task<bool> DeleteAsync(Guid id);
+    Task DeleteAsync(Guid id);
 }

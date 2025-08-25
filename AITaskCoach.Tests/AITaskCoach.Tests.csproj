@@ -27,7 +27,7 @@
     <!-- Code coverage (optional, but recommended) -->
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <!-- ASP.NET Core HTTP Features -->
-  <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.3.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Http.Features" Version="2.2.0" />
     <!-- MediatR for CQRS pattern implementation -->
     <PackageReference Include="MediatR" Version="11.1.0" />
     <PackageReference Include="MediatR.Extensions.Microsoft.DependencyInjection" Version="11.1.0" />

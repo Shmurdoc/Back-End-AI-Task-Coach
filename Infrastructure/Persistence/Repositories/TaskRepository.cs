@@ -80,15 +80,14 @@ public class TaskRepository : ITaskRepository
         return task;
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task DeleteAsync(Guid id)
     {
         var task = await _context.Tasks.FindAsync(id);
         if (task != null)
         {
-            _context.Tasks.Remove(task);
+            task.Status = TaskItemStatus.Cancelled;
+            task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            return true;
         }
-        return false;
     }
 }

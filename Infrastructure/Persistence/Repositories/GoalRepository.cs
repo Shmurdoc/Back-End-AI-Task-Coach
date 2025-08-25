@@ -64,16 +64,15 @@ public class GoalRepository : IGoalRepository
         return goal;
     }
 
-    public async Task<bool> DeleteAsync(Guid id)
+    public async Task DeleteAsync(Guid id)
     {
         var goal = await _context.Goals.FindAsync(id);
         if (goal != null)
         {
-            _context.Goals.Remove(goal);
+            goal.Status = GoalStatus.Cancelled;
+            goal.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
-            return true;
         }
-        return false;
     }
 
     public async Task<bool> UserExistsAsync(Guid userId)

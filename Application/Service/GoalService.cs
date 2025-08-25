@@ -25,7 +25,7 @@ public class GoalService : IGoalService
         // ...existing validation logic if any...
 
         var userId = _userContext.GetCurrentUserId();
-        var goal = new Domain.Entities.Goal
+        var goal = new Goal
         {
             Id = Guid.NewGuid(),
             UserId = userId,

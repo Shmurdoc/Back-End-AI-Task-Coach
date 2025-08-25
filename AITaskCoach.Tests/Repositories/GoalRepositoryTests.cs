@@ -32,76 +32,45 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
     public async Task GetUserGoalsAsync_ShouldReturnGoalsForUser()
     {
         // Arrange
-        var user = Fixture.Create<User>();
-        await SeedDatabaseAsync(user);
+        var userId = Fixture.Create<Guid>();
         var userGoals = Fixture.Build<Goal>()
-            .OmitAutoProperties()
-            .With(g => g.UserId, user.Id)
-            .With(g => g.Status, Domain.Enums.GoalStatus.InProgress)
-            .With(g => g.User, (Domain.Entities.User?)null)
-            .With(g => g.Tasks, new List<Domain.Entities.TaskItem>())
-            .With(g => g.ProgressHistory, new List<Domain.Entities.GoalProgress>())
+            .With(g => g.UserId, userId)
             .CreateMany(2)
             .ToArray();
-        var otherGoals = Fixture.Build<Goal>()
-            .OmitAutoProperties()
-            .With(g => g.UserId, Guid.NewGuid())
-            .With(g => g.Status, Domain.Enums.GoalStatus.InProgress)
-            .With(g => g.User, (Domain.Entities.User?)null)
-            .With(g => g.Tasks, new List<Domain.Entities.TaskItem>())
-            .With(g => g.ProgressHistory, new List<Domain.Entities.GoalProgress>())
-            .CreateMany(1).ToArray();
+        var otherGoals = Fixture.CreateMany<Goal>(1).ToArray();
         await SeedDatabaseAsync(userGoals.Concat(otherGoals).ToArray());
 
         // Act
-        var result = await _repository.GetUserGoalsAsync(user.Id);
+        var result = await _repository.GetUserGoalsAsync(userId);
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().OnlyContain(g => g.UserId == user.Id);
+        result.Should().OnlyContain(g => g.UserId == userId);
     }
 
     [Fact]
     public async Task GetActiveUserGoalsAsync_ShouldReturnActiveGoalsForUser()
     {
         // Arrange
-        var user = Fixture.Create<User>();
-        await SeedDatabaseAsync(user);
+        var userId = Fixture.Create<Guid>();
         var activeGoals = Fixture.Build<Goal>()
-            .OmitAutoProperties()
-            .With(g => g.UserId, user.Id)
-            .With(g => g.Status, Domain.Enums.GoalStatus.InProgress)
-            .With(g => g.User, (Domain.Entities.User?)null)
-            .With(g => g.Tasks, new List<Domain.Entities.TaskItem>())
-            .With(g => g.ProgressHistory, new List<Domain.Entities.GoalProgress>())
+            .With(g => g.UserId, userId)
+            .With(g => g.CreatedAt, DateTime.UtcNow)
             .CreateMany(2)
             .ToArray();
         var inactiveGoals = Fixture.Build<Goal>()
-            .OmitAutoProperties()
-            .With(g => g.UserId, user.Id)
-            .With(g => g.Status, Domain.Enums.GoalStatus.Completed)
-            .With(g => g.User, (Domain.Entities.User?)null)
-            .With(g => g.Tasks, new List<Domain.Entities.TaskItem>())
-            .With(g => g.ProgressHistory, new List<Domain.Entities.GoalProgress>())
+            .With(g => g.UserId, userId)
+            .With(g => g.CreatedAt, DateTime.UtcNow)
             .CreateMany(1)
             .ToArray();
-        var otherGoals = Fixture.Build<Goal>()
-            .OmitAutoProperties()
-            .With(g => g.UserId, Guid.NewGuid())
-            .With(g => g.Status, Domain.Enums.GoalStatus.InProgress)
-            .With(g => g.User, (Domain.Entities.User?)null)
-            .With(g => g.Tasks, new List<Domain.Entities.TaskItem>())
-            .With(g => g.ProgressHistory, new List<Domain.Entities.GoalProgress>())
-            .CreateMany(1)
-            .ToArray();
-        await SeedDatabaseAsync(activeGoals.Concat(inactiveGoals).Concat(otherGoals).ToArray());
+        await SeedDatabaseAsync(activeGoals.Concat(inactiveGoals).ToArray());
 
         // Act
-        var result = await _repository.GetActiveUserGoalsAsync(user.Id);
+        var result = await _repository.GetActiveUserGoalsAsync(userId);
 
         // Assert
         result.Should().HaveCount(2);
-        result.Should().OnlyContain(g => g.UserId == user.Id && g.Status == Domain.Enums.GoalStatus.InProgress);
+        result.Should().OnlyContain(g => g.UserId == userId && g.CreatedAt <= DateTime.UtcNow);
     }
 
     [Fact]

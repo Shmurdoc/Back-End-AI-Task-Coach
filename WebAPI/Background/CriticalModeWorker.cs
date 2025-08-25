@@ -9,35 +9,28 @@ namespace WebAPI.Background;
 public class CriticalModeWorker : BackgroundService
 {
     private readonly ILogger<CriticalModeWorker> _logger;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IUserRepository _users;
+    private readonly ITaskRepository _tasks;
+    private readonly IGamificationService _gamification;
+    private readonly IAdaptiveSchedulingEngine _scheduler;
 
-    public CriticalModeWorker(ILogger<CriticalModeWorker> logger, IServiceScopeFactory scopeFactory)
-    {
-        _logger = logger;
-        _scopeFactory = scopeFactory;
-    }
+    public CriticalModeWorker(ILogger<CriticalModeWorker> logger, IUserRepository users, ITaskRepository tasks, IGamificationService gamification, IAdaptiveSchedulingEngine scheduler)
+    { _logger = logger; _users = users; _tasks = tasks; _gamification = gamification; _scheduler = scheduler; }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            using (var scope = _scopeFactory.CreateScope())
+            var users = await _users.GetActiveUsersAsync();
+            foreach (var u in users)
             {
-                var usersRepo = scope.ServiceProvider.GetRequiredService<IUserRepository>();
-                var tasksRepo = scope.ServiceProvider.GetRequiredService<ITaskRepository>();
-                var gamification = scope.ServiceProvider.GetRequiredService<IGamificationService>();
-                var scheduler = scope.ServiceProvider.GetRequiredService<IAdaptiveSchedulingEngine>();
-                var users = await usersRepo.GetActiveUsersAsync();
-                foreach (var u in users)
+                var relapse = await _gamification.DetectRelapseAsync(u.Id, stoppingToken);
+                var active = await _tasks.GetActiveUserTasksAsync(u.Id);
+                var criticalOverdue = active.Count(t => (t.EndTime ?? t.StartTime) < DateTime.UtcNow && t.Priority >= TaskPriority.High);
+                if (relapse || criticalOverdue >= 3)
                 {
-                    var relapse = await gamification.DetectRelapseAsync(u.Id, stoppingToken);
-                    var active = await tasksRepo.GetActiveUserTasksAsync(u.Id);
-                    var criticalOverdue = active.Count(t => (t.EndTime ?? t.StartTime) < DateTime.UtcNow && t.Priority >= TaskPriority.High);
-                    if (relapse || criticalOverdue >= 3)
-                    {
-                        _logger.LogWarning("Critical Mode activated for {UserId}", u.Id);
-                        await scheduler.RescheduleAsync(u.Id, stoppingToken);
-                    }
+                    _logger.LogWarning("Critical Mode activated for {UserId}", u.Id);
+                    await _scheduler.RescheduleAsync(u.Id, stoppingToken);
                 }
             }
             await Task.Delay(TimeSpan.FromMinutes(15), stoppingToken);
