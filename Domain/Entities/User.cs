@@ -17,12 +17,20 @@ public class User : BaseEntity
     [StringLength(255)]
     public string Email { get; set; } = string.Empty;
 
+
     /// <summary>
     /// User display name
     /// </summary>
     [Required]
     [StringLength(100)]
     public string Name { get; set; } = string.Empty;
+
+    /// <summary>
+    /// User phone number (for SMS notifications)
+    /// </summary>
+    [Phone]
+    [StringLength(32)]
+    public string? PhoneNumber { get; set; }
 
     /// <summary>
     /// Hashed password

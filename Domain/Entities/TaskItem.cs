@@ -29,6 +29,16 @@ public class TaskItem : BaseEntity
     public int CompletionPercentage { get; set; }
     public DateTime? CompletedAt { get; set; }
     public DateTime? StartedAt { get; set; }
+
+    /// <summary>
+    /// Compatibility: StartTime (alias for StartedAt)
+    /// </summary>
+    public DateTime? StartTime { get => StartedAt; set => StartedAt = value; }
+
+    /// <summary>
+    /// Compatibility: EndTime (alias for CompletedAt)
+    /// </summary>
+    public DateTime? EndTime { get => CompletedAt; set => CompletedAt = value; }
     public string[] Tags { get; set; } = Array.Empty<string>();
     public string? AISuggestions { get; set; } // AI-generated recommendations
     public Guid[] Dependencies { get; set; } = Array.Empty<Guid>();
