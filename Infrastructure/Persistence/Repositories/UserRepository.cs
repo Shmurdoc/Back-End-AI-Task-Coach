@@ -72,20 +72,33 @@ public class UserRepository : IUserRepository
         return user;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user != null)
         {
-            user.IsActive = false;
-            user.UpdatedAt = DateTime.UtcNow;
+            _context.Users.Remove(user);
             await _context.SaveChangesAsync();
+            return true;
         }
+        return false;
     }
 
     public async Task SaveChangesAsync()
     {
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<UserPreferences?> GetPreferencesAsync(Guid userId)
+    {
+        // TODO: Implement actual preferences retrieval
+        return await Task.FromResult<UserPreferences?>(null);
+    }
+
+    public async Task UpdatePreferencesAsync(Guid userId, UserPreferences prefs)
+    {
+        // TODO: Implement actual preferences update
+        await Task.CompletedTask;
     }
 }
 

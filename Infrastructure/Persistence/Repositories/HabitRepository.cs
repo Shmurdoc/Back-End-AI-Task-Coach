@@ -61,15 +61,16 @@ public class HabitRepository : IHabitRepository
         return habit;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var habit = await _context.Habits.FindAsync(id);
         if (habit != null)
         {
-            habit.IsActive = false;
-            habit.UpdatedAt = DateTime.UtcNow;
+            _context.Habits.Remove(habit);
             await _context.SaveChangesAsync();
+            return true;
         }
+        return false;
     }
 
     public async Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry)
