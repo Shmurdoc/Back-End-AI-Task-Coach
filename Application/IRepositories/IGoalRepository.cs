@@ -13,6 +13,6 @@ public interface IGoalRepository
     Task<IEnumerable<Goal>> GetActiveUserGoalsAsync(Guid userId);
     Task<Goal> AddAsync(Goal goal);
     Task<Goal> UpdateAsync(Goal goal);
-    Task DeleteAsync(Guid id);
+    Task<bool> DeleteAsync(Guid id);
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

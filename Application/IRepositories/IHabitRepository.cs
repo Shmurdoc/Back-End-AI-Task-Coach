@@ -9,7 +9,7 @@ public interface IHabitRepository
     Task<IEnumerable<Habit>> GetActiveUserHabitsAsync(Guid userId);
     Task<Habit> AddAsync(Habit habit);
     Task<Habit> UpdateAsync(Habit habit);
-    Task DeleteAsync(Guid id);
+    Task<bool> DeleteAsync(Guid id);
     Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry);
     Task<IEnumerable<HabitEntry>> GetHabitEntriesAsync(Guid habitId, DateTime startDate, DateTime endDate);
     Task UpdateStreakAsync(Guid habitId);
