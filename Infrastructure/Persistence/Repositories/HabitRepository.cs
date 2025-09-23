@@ -61,7 +61,7 @@ public class HabitRepository : IHabitRepository
         return habit;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var habit = await _context.Habits.FindAsync(id);
         if (habit != null)
@@ -69,7 +69,9 @@ public class HabitRepository : IHabitRepository
             habit.IsActive = false;
             habit.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            return true;
         }
+        return false;
     }
 
     public async Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry)
@@ -224,5 +226,20 @@ public class HabitRepository : IHabitRepository
     public async Task<int>SaveChangesAsync(CancellationToken cancellationToken)
     {
       return await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    // Gamification methods
+    public async Task<int> GetHabitCountByUserAsync(Guid userId)
+    {
+        return await _context.Habits
+            .Where(h => h.UserId == userId)
+            .CountAsync();
+    }
+
+    public async Task<int> GetActiveHabitCountByUserAsync(Guid userId)
+    {
+        return await _context.Habits
+            .Where(h => h.UserId == userId && h.IsActive)
+            .CountAsync();
     }
 }

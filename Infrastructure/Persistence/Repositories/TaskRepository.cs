@@ -80,7 +80,7 @@ public class TaskRepository : ITaskRepository
         return task;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var task = await _context.Tasks.FindAsync(id);
         if (task != null)
@@ -88,6 +88,32 @@ public class TaskRepository : ITaskRepository
             task.Status = TaskItemStatus.Cancelled;
             task.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            return true;
         }
+        return false;
+    }
+
+    // Gamification methods
+    public async Task<int> GetTaskCountByUserAsync(Guid userId)
+    {
+        return await _context.Tasks
+            .Where(t => t.UserId == userId)
+            .CountAsync();
+    }
+
+    public async Task<IEnumerable<TaskItem>> GetRecentTasksByUserAsync(Guid userId, int days)
+    {
+        var cutoffDate = DateTime.UtcNow.AddDays(-days);
+        return await _context.Tasks
+            .Where(t => t.UserId == userId && t.CompletedAt >= cutoffDate)
+            .OrderByDescending(t => t.CompletedAt)
+            .ToListAsync();
+    }
+
+    public async Task<int> GetCompletedTaskCountByUserAsync(Guid userId)
+    {
+        return await _context.Tasks
+            .Where(t => t.UserId == userId && t.CompletedAt.HasValue)
+            .CountAsync();
     }
 }

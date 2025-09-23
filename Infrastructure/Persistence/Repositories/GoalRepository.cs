@@ -64,7 +64,7 @@ public class GoalRepository : IGoalRepository
         return goal;
     }
 
-    public async Task DeleteAsync(Guid id)
+    public async Task<bool> DeleteAsync(Guid id)
     {
         var goal = await _context.Goals.FindAsync(id);
         if (goal != null)
@@ -72,7 +72,9 @@ public class GoalRepository : IGoalRepository
             goal.Status = GoalStatus.Cancelled;
             goal.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            return true;
         }
+        return false;
     }
 
     public async Task<bool> UserExistsAsync(Guid userId)
@@ -83,5 +85,20 @@ public class GoalRepository : IGoalRepository
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
        return await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    // Gamification methods
+    public async Task<int> GetGoalCountByUserAsync(Guid userId)
+    {
+        return await _context.Goals
+            .Where(g => g.UserId == userId)
+            .CountAsync();
+    }
+
+    public async Task<int> GetCompletedGoalCountByUserAsync(Guid userId)
+    {
+        return await _context.Goals
+            .Where(g => g.UserId == userId && g.CompletedAt.HasValue)
+            .CountAsync();
     }
 }
