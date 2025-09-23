@@ -1,20 +1,21 @@
-using Microsoft.Extensions.Configuration;
-using Application.AI;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using Application.IService;
+using Application.Services;
 
-namespace Application.AI
+namespace Application.AI;
+
+/// <summary>
+/// Service registration for AI prediction services
+/// </summary>
+public static class AIPredictionServiceRegistration
 {
-    public static class AIPredictionServiceRegistration
+    public static IServiceCollection AddAIPredictionService(IServiceCollection services, IConfiguration? configuration)
     {
-        public static IServiceCollection AddAIPredictionService(this IServiceCollection services, IConfiguration? configuration = null)
-        {
-            if (configuration != null)
-            {
-                services.Configure<OpenAIOptions>(configuration.GetSection("OpenAI"));
-            }
-            services.AddHttpClient<OpenAIPredictionService>();
-            services.AddSingleton<IAIPredictionService, OpenAIPredictionService>();
-            return services;
-        }
+        // Register the main AI service
+        services.AddHttpClient<IAIService, AIService>();
+        services.AddScoped<IAIService, AIService>();
+        
+        return services;
     }
 }
