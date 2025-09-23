@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext
     }
 
     public DbSet<User> Users { get; set; } = null!;
+    public DbSet<UserPreferences> UserPreferences { get; set; } = null!;
     public DbSet<Habit> Habits { get; set; } = null!;
     public DbSet<HabitEntry> HabitEntries { get; set; } = null!;
     public DbSet<HabitAnalytics> HabitAnalytics { get; set; } = null!;
@@ -36,6 +37,18 @@ public class ApplicationDbContext : DbContext
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
             entity.Property(e => e.PasswordHash).IsRequired();
             entity.Property(e => e.IsActive);
+        });
+
+        // UserPreferences configuration
+        modelBuilder.Entity<UserPreferences>(entity =>
+        {
+            entity.ToTable("UserPreferences");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UserId).IsUnique();
+            entity.Property(e => e.UseEmail);
+            entity.Property(e => e.UseSms);
+            entity.Property(e => e.QuietFromHour);
+            entity.Property(e => e.QuietToHour);
         });
 
 

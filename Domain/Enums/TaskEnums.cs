@@ -1,9 +1,11 @@
 namespace Domain.Enums;
 
-
+/// <summary>
+/// Task status enumeration
+/// </summary>
 
 /// <summary>
-/// How important a task is, from "Low" to "Urgent". I use this to help the AI figure out what should get attention first.
+/// Task priority levels for AI scheduling
 /// </summary>
 public enum TaskPriority
 {
@@ -16,7 +18,7 @@ public enum TaskPriority
 
 
 /// <summary>
-/// The kinds of patterns I want the AI to look for—like productivity times, habit streaks, or procrastination triggers. This helps drive smarter suggestions.
+/// Pattern types for AI analysis
 /// </summary>
 public enum PatternType
 {

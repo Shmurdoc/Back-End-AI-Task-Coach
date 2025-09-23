@@ -1,17 +1,19 @@
 using Microsoft.Extensions.Configuration;
 // Must be at the end for integration test accessibility
 
-
-
 using Prometheus;
 using Microsoft.AspNetCore.Mvc;
 using Application.Extensions;
 using Infrastructure.DependencyInjection;
+using Infrastructure.Services.Notification;
 using Application;
 using WebAPI.Middleware;
 using WebAPI.Extensions;
 using Application.IService;
 using Application.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 // Register Infrastructure and Application DI
@@ -21,6 +23,25 @@ builder.Services.AddHostedService<WebAPI.Background.SmartTimetableWorker>();
 builder.Services.AddHostedService<WebAPI.Background.CriticalModeWorker>();
 // Register background services for automated protocols
 builder.Services.AddHostedService<WebAPI.Background.ProcrastinationRecoveryWorker>();
+
+// Add authentication and authorization
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        var jwtSection = builder.Configuration.GetSection("Jwt");
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!)),
+            ValidateIssuer = true,
+            ValidIssuer = jwtSection["Issuer"],
+            ValidateAudience = true,
+            ValidAudience = jwtSection["Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+builder.Services.AddAuthorization();
 
 // Add services to the container.
 builder.Services.AddControllers().ConfigureApiBehaviorOptions(options => {
@@ -73,6 +94,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Add authentication and authorization middleware
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Add metrics middleware
 app.UseMiddleware<MetricsMiddleware>();

@@ -12,13 +12,11 @@ namespace WebAPI.Controllers;
 public class AIController : ControllerBase
 {
     private readonly IAIService _ai;
-    private readonly Application.AI.IAIPredictionService _aiPrediction;
     private readonly ILogger<AIController> _logger;
 
-    public AIController(IAIService ai, Application.AI.IAIPredictionService aiPrediction, ILogger<AIController> logger)
+    public AIController(IAIService ai, ILogger<AIController> logger)
     {
         _ai = ai;
-        _aiPrediction = aiPrediction;
         _logger = logger;
     }
     /// <summary>
@@ -27,7 +25,7 @@ public class AIController : ControllerBase
     [HttpPost("predict-task")]
     public async Task<IActionResult> PredictTask([FromBody, Required] TaskPredictionRequest req)
     {
-        var result = await _aiPrediction.PredictTaskAsync(req.Task, req.UserId);
+        var result = await _ai.GetTaskSuggestionAsync($"Task: {req.Task.Title} - {req.Task.Description}");
         return Ok(new { success = true, result });
     }
 
@@ -37,7 +35,7 @@ public class AIController : ControllerBase
     [HttpGet("suggestions/{userId:guid}")]
     public async Task<IActionResult> GetSuggestions([FromRoute] Guid userId)
     {
-        var suggestions = await _aiPrediction.GetSuggestionsAsync(userId);
+        var suggestions = await _ai.AnalyzeUserPatternsAsync(userId);
         return Ok(new { success = true, suggestions });
     }
 
@@ -47,7 +45,7 @@ public class AIController : ControllerBase
     [HttpPost("predict-goal")]
     public async Task<IActionResult> PredictGoal([FromBody, Required] GoalPredictionRequest req)
     {
-        var result = await _aiPrediction.PredictGoalAsync(req.Goal, req.UserId);
+        var result = await _ai.GetTaskSuggestionAsync($"Goal: {req.Goal.Title} - {req.Goal.Description}");
         return Ok(new { success = true, result });
     }
     public record TaskPredictionRequest([Required] Application.DTOs.TaskDtos.TaskDto Task, [Required] Guid UserId);

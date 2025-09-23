@@ -31,14 +31,14 @@ public class TaskItem : BaseEntity
     public DateTime? StartedAt { get; set; }
 
     /// <summary>
-    /// Compatibility: StartTime (alias for StartedAt)
+    /// Compatibility: StartTime (alias for StartedAt) - TEMPORARILY DISABLED DUE TO DATABASE SCHEMA MISMATCH
     /// </summary>
-    public DateTime? StartTime { get => StartedAt; set => StartedAt = value; }
+    // public DateTime? StartTime { get => StartedAt; set => StartedAt = value; }
 
     /// <summary>
-    /// Compatibility: EndTime (alias for CompletedAt)
+    /// Compatibility: EndTime (alias for CompletedAt) - TEMPORARILY DISABLED DUE TO DATABASE SCHEMA MISMATCH  
     /// </summary>
-    public DateTime? EndTime { get => CompletedAt; set => CompletedAt = value; }
+    // public DateTime? EndTime { get => CompletedAt; set => CompletedAt = value; }
     public string[] Tags { get; set; } = Array.Empty<string>();
     public string? AISuggestions { get; set; } // AI-generated recommendations
     public Guid[] Dependencies { get; set; } = Array.Empty<Guid>();

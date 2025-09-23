@@ -28,9 +28,9 @@ public class User : BaseEntity
     /// <summary>
     /// User phone number (for SMS notifications)
     /// </summary>
-    [Phone]
-    [StringLength(32)]
-    public string? PhoneNumber { get; set; }
+    // [Phone]
+    // [StringLength(32)]
+    // public string? PhoneNumber { get; set; }
 
     /// <summary>
     /// Hashed password
