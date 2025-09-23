@@ -1,5 +1,6 @@
 using Application.Services;
 using Application.IService;
+using Infrastructure.Services.Notification;
 using Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -58,7 +59,7 @@ public class NotificationProvidersTests
     {
         // Arrange
         var provider = new TwilioSmsProvider(_smsLogger.Object, _config.Object);
-        var user = new User { Id = Guid.NewGuid(), Email = "test@test.com", PhoneNumber = null };
+        var user = new User { Id = Guid.NewGuid(), Email = "test@test.com" /* PhoneNumber = null */ };
 
         // Act
         var result = await provider.SendAsync(user, "Test", "Test message");
