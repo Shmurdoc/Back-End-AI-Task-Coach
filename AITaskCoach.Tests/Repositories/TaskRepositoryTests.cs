@@ -90,10 +90,11 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
         await SeedDatabaseAsync(task);
 
         // Act
-        var result =  _repository.DeleteAsync(task.Id);
 
-        // Assert
-        result.Should().Be(true);
+    var result = await _repository.DeleteAsync(task.Id);
+
+    // Assert
+    result.Should().BeTrue();
 
         var deletedTask = await _repository.GetByIdAsync(task.Id);
         deletedTask.Should().BeNull();
@@ -106,10 +107,10 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
         var invalidId = Fixture.Create<Guid>();
 
         // Act
-        var result =  _repository.DeleteAsync(invalidId);
+    var result = await _repository.DeleteAsync(invalidId);
 
-        // Assert
-        result.Should().Be(false);
+    // Assert
+    result.Should().BeFalse();
     }
 }
 

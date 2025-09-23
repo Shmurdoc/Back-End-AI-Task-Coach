@@ -1,5 +1,7 @@
 using AITaskCoach.Tests.Infrastructure;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace AITaskCoach.Tests.Repositories;
@@ -7,10 +9,12 @@ namespace AITaskCoach.Tests.Repositories;
 public class UserRepositoryTests : RepositoryTestBase<UserRepository>
 {
     private readonly UserRepository _repository;
+    private readonly Mock<ILogger<UserRepository>> _loggerMock;
 
     public UserRepositoryTests()
     {
-        _repository = new UserRepository(DbContext);
+        _loggerMock = new Mock<ILogger<UserRepository>>();
+        _repository = new UserRepository(DbContext, _loggerMock.Object);
     }
 
     [Fact]
