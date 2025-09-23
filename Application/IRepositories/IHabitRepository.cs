@@ -9,13 +9,17 @@ public interface IHabitRepository
     Task<IEnumerable<Habit>> GetActiveUserHabitsAsync(Guid userId);
     Task<Habit> AddAsync(Habit habit);
     Task<Habit> UpdateAsync(Habit habit);
-    Task DeleteAsync(Guid id);
+    Task<bool> DeleteAsync(Guid id);
     Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry);
     Task<IEnumerable<HabitEntry>> GetHabitEntriesAsync(Guid habitId, DateTime startDate, DateTime endDate);
     Task UpdateStreakAsync(Guid habitId);
     Task<Dictionary<DayOfWeek, double>> GetCompletionRateByDayOfWeekAsync(Guid habitId);
     Task<Dictionary<int, double>> GetCompletionRateByHourAsync(Guid habitId);
     Task CreateAnalyticsAsync(Guid habitId);
+
+    // Gamification methods
+    Task<int> GetHabitCountByUserAsync(Guid userId);
+    Task<int> GetActiveHabitCountByUserAsync(Guid userId);
 
     Task<int>SaveChangesAsync(CancellationToken cancellationToken); // Optional, if you want to handle SaveChanges in the repository
 }

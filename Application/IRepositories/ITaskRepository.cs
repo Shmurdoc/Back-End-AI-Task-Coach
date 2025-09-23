@@ -10,5 +10,10 @@ public interface ITaskRepository
     Task<IEnumerable<TaskItem>> GetGoalTasksAsync(Guid goalId);
     Task<TaskItem> AddAsync(TaskItem task);
     Task<TaskItem> UpdateAsync(TaskItem task);
-    Task DeleteAsync(Guid id);
+    Task<bool> DeleteAsync(Guid id);
+    
+    // Gamification methods
+    Task<int> GetTaskCountByUserAsync(Guid userId);
+    Task<IEnumerable<TaskItem>> GetRecentTasksByUserAsync(Guid userId, int days);
+    Task<int> GetCompletedTaskCountByUserAsync(Guid userId);
 }
