@@ -1,6 +1,6 @@
 # AI Task Coach - Enterprise Productivity System 🚀
 
-[![Smoke Tests](https://github.com/your-username/ai-task-coach/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/your-username/ai-task-coach/actions/workflows/smoke-test.yml)
+[![Smoke Tests](https://github.com/Shmurdoc/Back-End-AI-Task-Coach/actions/workflows/smoke-test.yml/badge.svg)](https://github.com/Shmurdoc/Back-End-AI-Task-Coach/actions/workflows/smoke-test.yml)
 
 A comprehensive, enterprise-grade AI-powered productivity and task management system built with .NET 8.0 and Clean Architecture principles. Features advanced gamification, behavioral analytics, and real-time monitoring for maximum user engagement and productivity optimization.
 
