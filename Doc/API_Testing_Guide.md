@@ -20,6 +20,64 @@ This guide shows how to run the WebAPI, access Swagger UI, and test the main API
 
 ---
 
+## Quick step-by-step test (recommended)
+
+If you just want to verify the app is working end-to-end, follow these exact steps (copy/paste):
+
+1. Build the solution:
+
+```powershell
+dotnet build "Back-End AI Task Coach.sln"
+```
+
+2. Start the WebAPI (in a dedicated terminal):
+
+```powershell
+dotnet run --project .\WebAPI
+```
+
+3. Wait for the API to be ready (open a second terminal and run):
+
+```powershell
+for ($i=0; $i -lt 30; $i++) { try { if ((Invoke-WebRequest -UseBasicParsing http://localhost:5129/metrics).StatusCode -eq 200) { Write-Host "ready"; break } } catch { Start-Sleep -Seconds 1 } }
+```
+
+4. Open Swagger to inspect endpoints:
+
+Open http://localhost:5129 in a browser.
+
+5. Run the built-in smoke test (PowerShell, recommended):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1 -Cleanup
+```
+
+Or run the cross-platform bash variant (WSL / Git Bash / Linux):
+
+```bash
+chmod +x ./scripts/smoke-test.sh
+./scripts/smoke-test.sh CLEANUP=true
+```
+
+6. (Optional) Run the Postman collection via Newman:
+
+```bash
+cd postman
+npm ci
+npm run test:postman
+```
+
+7. Run the .NET tests locally (unit + integration):
+
+```powershell
+dotnet test
+```
+
+8. Confirm the created resources: use the `GET /api/tasks/user/{userId}` endpoint or check the in-memory/SQL DB depending on your configuration.
+
+If any step fails, consult the Troubleshooting section below (search for "Troubleshooting").
+
+
 ## 1) Start the API (PowerShell)
 
 Open PowerShell in the repository root and run:
