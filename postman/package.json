@@ -1,0 +1,11 @@
+{
+  "name": "postman-runner",
+  "version": "1.0.0",
+  "description": "Run Postman collection via newman",
+  "scripts": {
+  "test:postman": "newman run ../Doc/Postman_Collection.json -e ./environment.postman_environment.json --bail"
+  },
+  "devDependencies": {
+    "newman": "^5.3.2"
+  }
+}

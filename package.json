@@ -1,0 +1,11 @@
+{
+  "name": "ai-task-coach-smoke-test",
+  "version": "1.0.0",
+  "description": "Postman/Newman runner for API smoke test",
+  "scripts": {
+    "smoke-test": "node run-postman.js"
+  },
+  "dependencies": {
+    "newman": "^6.0.0"
+  }
+}

@@ -1,0 +1,58 @@
+name: Smoke Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Install dependencies (postman/newman)
+        run: |
+          sudo apt-get update && sudo apt-get install -y jq
+          cd postman || true
+          npm ci
+
+      - name: Build solution
+        run: dotnet build "Back-End AI Task Coach.sln" -c Release
+
+      - name: Start WebAPI
+        run: |
+          cd WebAPI
+          dotnet run --no-launch-profile &
+          echo $! > /tmp/webapi.pid
+
+      - name: Wait for WebAPI to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -sS http://localhost:5129/metrics >/dev/null; then
+              echo "webapi ready" && break
+            fi
+            sleep 1
+          done
+
+      - name: Run smoke test (bash)
+        run: |
+          chmod +x ./scripts/smoke-test.sh
+          ./scripts/smoke-test.sh CLEANUP=true
+
+      - name: Run Postman collection
+        run: |
+          cd postman
+          npm run test:postman
+
+      - name: Stop WebAPI
+        if: always()
+        run: |
+          if [ -f /tmp/webapi.pid ]; then kill $(cat /tmp/webapi.pid) || true; fi

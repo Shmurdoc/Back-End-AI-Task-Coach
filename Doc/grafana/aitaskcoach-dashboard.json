@@ -1,0 +1,12 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "AITaskCoach Backend",
+    "panels": [
+      { "type": "graph", "title": "Nudges Delivered", "targets": [{ "expr": "nudges_delivered_total" }] },
+      { "type": "graph", "title": "Tasks Rescheduled", "targets": [{ "expr": "tasks_rescheduled_total" }] },
+      { "type": "graph", "title": "Critical Mode Activations", "targets": [{ "expr": "critical_mode_activations_total" }] }
+    ]
+  },
+  "overwrite": false
+}
