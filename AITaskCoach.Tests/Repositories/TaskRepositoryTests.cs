@@ -85,7 +85,7 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
     }
 
     [Fact]
-    public async Task DeleteAsync_WithValidId_ShouldDeleteTask()
+    public async Task DeleteAsync_WithValidId_ShouldSetStatusCancelled()
     {
         // Arrange
         var task = Fixture.Create<TaskItem>();
@@ -100,7 +100,8 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
     result.Should().BeTrue();
 
         var deletedTask = await _repository.GetByIdAsync(task.Id);
-        deletedTask.Should().BeNull();
+        deletedTask.Should().NotBeNull();
+        deletedTask!.Status.Should().Be(Domain.Enums.TaskItemStatus.Cancelled);
     }
 
     [Fact]

@@ -146,7 +146,7 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldRemoveGoal()
+    public async Task DeleteAsync_ShouldSetStatusCancelled()
     {
         // Arrange
         var goal = Fixture.Create<Goal>();
@@ -158,7 +158,8 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
 
         // Assert
         var deletedGoal = await _repository.GetByIdAsync(goal.Id);
-        deletedGoal.Should().BeNull();
+        deletedGoal.Should().NotBeNull();
+        deletedGoal!.Status.Should().Be(Domain.Enums.GoalStatus.Cancelled);
     }
 }
 

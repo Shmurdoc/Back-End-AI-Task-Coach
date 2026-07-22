@@ -34,6 +34,25 @@ public abstract class TestBase : IDisposable
             composer.FromFactory<int, int, int>((y, m, d) =>
                 new DateOnly(Math.Clamp(y, 1, 9999), Math.Clamp(m, 1, 12), Math.Clamp(d, 1, 28))));
 
+        // Prevent AutoFixture from populating EF navigation properties (causes inflated counts)
+        Fixture.Customize<User>(composer =>
+            composer.Without(u => u.Goals)
+                .Without(u => u.Habits)
+                .Without(u => u.Tasks));
+        Fixture.Customize<Goal>(composer =>
+            composer.Without(g => g.User)
+                .Without(g => g.Tasks)
+                .Without(g => g.ProgressHistory));
+        Fixture.Customize<Habit>(composer =>
+            composer.Without(h => h.User)
+                .Without(h => h.Entries)
+                .Without(h => h.Analytics));
+        Fixture.Customize<HabitEntry>(composer =>
+            composer.Without(e => e.Habit));
+        Fixture.Customize<TaskItem>(composer =>
+            composer.Without(t => t.Goal)
+                .Without(t => t.User));
+
         // Remove built-in DataAnnotations relays (RegularExpressionAttributeRelay, DataAnnotationsSupportNode) if present
         var toRemove = Fixture.Customizations
             .Where(c => c.GetType().FullName == "AutoFixture.DataAnnotations.RegularExpressionAttributeRelay" ||
