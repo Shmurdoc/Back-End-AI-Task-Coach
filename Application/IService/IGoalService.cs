@@ -1,5 +1,4 @@
-﻿using Application.CQRS.Features.Queries.Goals;
-using Application.DTOs.GoalDtos;
+﻿using Application.DTOs.GoalDtos;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -48,7 +48,6 @@ public class GoalRepository : IGoalRepository
     public async Task<Goal> AddAsync(Goal goal)
     {
         _context.Goals.Add(goal);
-        await _context.SaveChangesAsync();
         return goal;
     }
 
@@ -60,7 +59,6 @@ public class GoalRepository : IGoalRepository
             goal.CompletedAt = DateTime.UtcNow;
         }
         _context.Goals.Update(goal);
-        await _context.SaveChangesAsync();
         return goal;
     }
 
@@ -71,7 +69,6 @@ public class GoalRepository : IGoalRepository
         {
             goal.Status = GoalStatus.Cancelled;
             goal.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
             return true;
         }
         return false;

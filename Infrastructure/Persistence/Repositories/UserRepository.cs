@@ -112,9 +112,7 @@ public class UserRepository : IUserRepository
             user.IsActive = true;
 
             _context.Users.Add(user);
-            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User created successfully: {UserId} - {Email}", user.Id, user.Email);
             return user;
         }
         catch (Exception ex)
@@ -149,9 +147,7 @@ public class UserRepository : IUserRepository
             }
 
             _context.Users.Update(existingUser);
-            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User updated successfully: {UserId}", user.Id);
             return existingUser;
         }
         catch (Exception ex)
@@ -174,9 +170,7 @@ public class UserRepository : IUserRepository
             user.UpdatedAt = DateTime.UtcNow;
 
             _context.Users.Update(user);
-            await _context.SaveChangesAsync();
 
-            _logger.LogInformation("User deleted (soft delete): {UserId}", id);
             return true;
         }
         catch (Exception ex)
@@ -236,8 +230,6 @@ public class UserRepository : IUserRepository
                 _context.UserPreferences.Update(existingPrefs);
             }
 
-            await _context.SaveChangesAsync();
-            _logger.LogInformation("User preferences updated: {UserId}", userId);
         }
         catch (Exception ex)
         {

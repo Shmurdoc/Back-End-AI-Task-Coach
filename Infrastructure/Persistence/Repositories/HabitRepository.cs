@@ -49,7 +49,6 @@ public class HabitRepository : IHabitRepository
         habit.CreatedAt = DateTime.UtcNow;
         habit.UpdatedAt = DateTime.UtcNow;
         _context.Habits.Add(habit);
-        await _context.SaveChangesAsync();
         return habit;
     }
 
@@ -57,7 +56,6 @@ public class HabitRepository : IHabitRepository
     {
         habit.UpdatedAt = DateTime.UtcNow;
         _context.Habits.Update(habit);
-        await _context.SaveChangesAsync();
         return habit;
     }
 
@@ -68,7 +66,6 @@ public class HabitRepository : IHabitRepository
         {
             habit.IsActive = false;
             habit.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
             return true;
         }
         return false;
@@ -78,7 +75,6 @@ public class HabitRepository : IHabitRepository
     {
         entry.CreatedAt = DateTime.UtcNow;
         _context.HabitEntries.Add(entry);
-        await _context.SaveChangesAsync();
         return entry;
     }
 
@@ -104,7 +100,6 @@ public class HabitRepository : IHabitRepository
         if (!recentEntries.Any())
         {
             habit.CurrentStreak = 0;
-            await _context.SaveChangesAsync();
             return;
         }
 
@@ -128,8 +123,6 @@ public class HabitRepository : IHabitRepository
         habit.CurrentStreak = currentStreak;
         habit.BestStreak = Math.Max(habit.BestStreak, currentStreak);
         habit.LastCompletedAt = recentEntries.First().Date;
-
-        await _context.SaveChangesAsync();
     }
 
     public async Task<Dictionary<DayOfWeek, double>> GetCompletionRateByDayOfWeekAsync(Guid habitId)
@@ -205,7 +198,6 @@ public class HabitRepository : IHabitRepository
         };
 
         _context.HabitAnalytics.Add(analytics);
-        await _context.SaveChangesAsync();
     }
 
     private static double CalculateTrendDirection(List<HabitEntry> entries)

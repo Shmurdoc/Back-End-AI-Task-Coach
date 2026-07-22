@@ -64,7 +64,6 @@ public class TaskRepository : ITaskRepository
         task.CreatedAt = DateTime.UtcNow;
         task.UpdatedAt = DateTime.UtcNow;
         _context.Tasks.Add(task);
-        await _context.SaveChangesAsync();
         return task;
     }
 
@@ -76,7 +75,6 @@ public class TaskRepository : ITaskRepository
             task.CompletedAt = DateTime.UtcNow;
         }
         _context.Tasks.Update(task);
-        await _context.SaveChangesAsync();
         return task;
     }
 
@@ -87,10 +85,14 @@ public class TaskRepository : ITaskRepository
         {
             task.Status = TaskItemStatus.Cancelled;
             task.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync();
             return true;
         }
         return false;
+    }
+
+    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.SaveChangesAsync(cancellationToken);
     }
 
     // Gamification methods

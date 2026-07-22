@@ -12,6 +12,8 @@ public interface ITaskRepository
     Task<TaskItem> UpdateAsync(TaskItem task);
     Task<bool> DeleteAsync(Guid id);
     
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
     // Gamification methods
     Task<int> GetTaskCountByUserAsync(Guid userId);
     Task<IEnumerable<TaskItem>> GetRecentTasksByUserAsync(Guid userId, int days);

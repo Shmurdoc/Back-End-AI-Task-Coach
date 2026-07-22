@@ -1,4 +1,3 @@
-using Application.CQRS.Features.Queries.Goals;
 using Application.DTOs.GoalDtos;
 using Application.IRepositories;
 using Application.IService;

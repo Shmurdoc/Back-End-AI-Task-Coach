@@ -81,7 +81,6 @@ public class AuthController : ControllerBase
             {
                 Email = request.Email.ToLower().Trim(),
                 Name = request.Name.Trim(),
-                // PhoneNumber = request.PhoneNumber?.Trim(), // TODO: Add back when database supports it
                 PasswordHash = TokenService.HashPassword(request.Password),
                 IsActive = true
             };
@@ -103,7 +102,6 @@ public class AuthController : ControllerBase
                     Id = createdUser.Id,
                     Email = createdUser.Email,
                     Name = createdUser.Name,
-                    // PhoneNumber = createdUser.PhoneNumber, // TODO: Add back when database supports it
                     IsActive = createdUser.IsActive
                 }
             });
@@ -190,7 +188,6 @@ public class AuthController : ControllerBase
                     Id = user.Id,
                     Email = user.Email,
                     Name = user.Name,
-                    // PhoneNumber = user.PhoneNumber, // TODO: Add back when database supports it
                     IsActive = user.IsActive,
                     CreatedAt = user.CreatedAt
                 }

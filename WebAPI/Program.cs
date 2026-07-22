@@ -25,6 +25,11 @@ builder.Services.AddHostedService<WebAPI.Background.CriticalModeWorker>();
 builder.Services.AddHostedService<WebAPI.Background.ProcrastinationRecoveryWorker>();
 
 // Add authentication and authorization
+var jwtKey = builder.Configuration.GetSection("Jwt")["Key"];
+if (string.IsNullOrEmpty(jwtKey))
+{
+    throw new InvalidOperationException("JWT Key is not configured. Set Jwt:Key in configuration or environment variables.");
+}
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -32,7 +37,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Key"]!)),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ValidateIssuer = true,
             ValidIssuer = jwtSection["Issuer"],
             ValidateAudience = true,
@@ -95,6 +100,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Global exception handling
+app.UseMiddleware<GlobalExceptionMiddleware>();
+
 // Add authentication and authorization middleware
 app.UseAuthentication();
 app.UseAuthorization();
@@ -102,9 +110,6 @@ app.UseAuthorization();
 // Add metrics middleware
 app.UseMiddleware<MetricsMiddleware>();
 app.UseHttpMetrics();
-app.UseMetricServer();
-
-app.UseAuthorization();
 
 app.MapControllers();
 WebAPI.Extensions.WebApiObservabilityExtensions.MapMetrics(app);

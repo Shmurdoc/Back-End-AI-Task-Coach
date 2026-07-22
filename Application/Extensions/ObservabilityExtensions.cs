@@ -26,11 +26,4 @@ public static class ObservabilityExtensions
     public static UpDownCounter<int> ActiveUsers = AppMeter.CreateUpDownCounter<int>("active_users", "count", "Number of active users");
     public static UpDownCounter<int> PendingTasks = AppMeter.CreateUpDownCounter<int>("pending_tasks", "count", "Number of pending tasks");
     public static UpDownCounter<int> OverdueTasks = AppMeter.CreateUpDownCounter<int>("overdue_tasks", "count", "Number of overdue tasks");
-    
-    private static int GetCounterValue<T>(Counter<T> counter) where T : struct
-    {
-        // Note: In production, you'd typically use a metrics exporter that tracks these values
-        // This is a simplified implementation for demonstration
-        return 0;
-    }
 }
