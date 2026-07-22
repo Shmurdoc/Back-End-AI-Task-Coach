@@ -26,11 +26,9 @@ public static class DependencyInjection
         services.AddScoped<IService.Analytics.IEnergyMoodService, Services.Analytics.EnergyMoodService>();
         services.AddScoped<IService.Goal.IGoalDecompositionService, Services.Goal.GoalDecompositionService>();
         services.AddScoped<IService.IGamificationService, Services.GamificationService>();
-    services.AddScoped<ITaskService, Service.TaskService>();
-    services.AddScoped<IHabitService, Service.HabitService>();
-    services.AddScoped<IGoalService, Services.GoalService>();
-    services.AddScoped<IAdaptiveSchedulingEngine, Service.AdaptiveSchedulingEngine>();
-                // Register AI/ML services
+        services.AddScoped<IHabitService, Service.HabitService>();
+        services.AddScoped<IAdaptiveSchedulingEngine, Service.AdaptiveSchedulingEngine>();
+        // Register AI/ML services
         // AI services are registered in WebAPI through AIPredictionServiceRegistration
         return services;
     }
