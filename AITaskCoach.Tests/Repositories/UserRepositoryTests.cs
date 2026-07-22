@@ -84,6 +84,7 @@ public class UserRepositoryTests : RepositoryTestBase<UserRepository>
 
         // Act
         var result = await _repository.AddAsync(user);
+        await _repository.SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -106,6 +107,7 @@ public class UserRepositoryTests : RepositoryTestBase<UserRepository>
 
         // Act
         var result = await _repository.UpdateAsync(user);
+        await _repository.SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -124,6 +126,7 @@ public class UserRepositoryTests : RepositoryTestBase<UserRepository>
 
         // Act
         await _repository.DeleteAsync(user.Id);
+        await _repository.SaveChangesAsync();
 
         // Assert
         var deletedUser = await _repository.GetByIdAsync(user.Id);

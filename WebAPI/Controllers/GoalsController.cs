@@ -51,11 +51,9 @@ public class GoalsController : ControllerBase
         return Ok(new { success = true });
     }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult Index()
-        {
-            Application.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
-            return Ok(new { success = true, message = "Goals API root." });
-        }
+    [HttpGet]
+    public IActionResult Index()
+    {
+        return Ok(new { success = true, message = "Goals API root." });
+    }
 }

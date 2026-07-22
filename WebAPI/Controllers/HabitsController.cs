@@ -36,11 +36,9 @@ public class HabitsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id) { await _habits.DeleteHabitAsync(id); return Ok(new { success=true }); }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public IActionResult Index()
-        {
-            Application.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
-            return Ok(new { success = true, message = "Habits API root." });
-        }
+    [HttpGet]
+    public IActionResult Index()
+    {
+        return Ok(new { success = true, message = "Habits API root." });
+    }
 }

@@ -29,6 +29,11 @@ public abstract class TestBase : IDisposable
             .ForEach(b => Fixture.Behaviors.Remove(b));
         Fixture.Behaviors.Add(new OmitOnRecursionBehavior());
 
+        // Handle DateOnly creation (needed for .NET 6+ with AutoFixture 4.18.0)
+        Fixture.Customize<DateOnly>(composer =>
+            composer.FromFactory<int, int, int>((y, m, d) =>
+                new DateOnly(Math.Clamp(y, 1, 9999), Math.Clamp(m, 1, 12), Math.Clamp(d, 1, 28))));
+
         // Remove built-in DataAnnotations relays (RegularExpressionAttributeRelay, DataAnnotationsSupportNode) if present
         var toRemove = Fixture.Customizations
             .Where(c => c.GetType().FullName == "AutoFixture.DataAnnotations.RegularExpressionAttributeRelay" ||

@@ -37,14 +37,19 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         var user = Fixture.Create<User>();
         await SeedDatabaseAsync(user);
 
-        // Customize Fixture to create habits for the specific user
+        var otherUserId = Guid.NewGuid();
+
         var userHabits = Fixture.Build<Habit>()
+            .OmitAutoProperties()
             .With(h => h.UserId, user.Id)
+            .With(h => h.User, (User?)null)
             .CreateMany(2)
             .ToArray();
 
         var otherHabits = Fixture.Build<Habit>()
-            .With(h => h.UserId, Guid.NewGuid()) // Create habits for a different user
+            .OmitAutoProperties()
+            .With(h => h.UserId, otherUserId)
+            .With(h => h.User, (User?)null)
             .CreateMany(1)
             .ToArray();
 
@@ -65,20 +70,28 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         var user = Fixture.Create<User>();
         await SeedDatabaseAsync(user);
 
+        var otherUserId = Guid.NewGuid();
+
         var activeHabits = Fixture.Build<Habit>()
+            .OmitAutoProperties()
             .With(h => h.UserId, user.Id)
+            .With(h => h.User, (User?)null)
             .With(h => h.IsActive, true)
             .CreateMany(2)
             .ToArray();
 
         var inactiveHabits = Fixture.Build<Habit>()
+            .OmitAutoProperties()
             .With(h => h.UserId, user.Id)
+            .With(h => h.User, (User?)null)
             .With(h => h.IsActive, false)
             .CreateMany(1)
             .ToArray();
 
         var otherHabits = Fixture.Build<Habit>()
-            .With(h => h.UserId, Guid.NewGuid())
+            .OmitAutoProperties()
+            .With(h => h.UserId, otherUserId)
+            .With(h => h.User, (User?)null)
             .With(h => h.IsActive, true)
             .CreateMany(1)
             .ToArray();
@@ -101,6 +114,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         var result = await _repository.AddAsync(habit);
+        await _repository.SaveChangesAsync(default);
 
         // Assert
         result.Should().NotBeNull();
@@ -118,13 +132,21 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         var habit = Fixture.Create<Habit>();
         await SeedDatabaseAsync(habit);
         
+        // Detach the tracked entity to avoid conflict
+        DbContext.Entry(habit).State = Microsoft.EntityFrameworkCore.EntityState.Detached;
+
         var updatedHabit = Fixture.Build<Habit>()
+            .OmitAutoProperties()
             .With(h => h.Id, habit.Id)
+            .With(h => h.UserId, habit.UserId)
+            .With(h => h.User, (User?)null)
             .With(h => h.Name, Fixture.Create<string>())
+            .With(h => h.IsActive, true)
             .Create();
 
         // Act
         var result = await _repository.UpdateAsync(updatedHabit);
+        await _repository.SaveChangesAsync(default);
 
         // Assert
         result.Should().NotBeNull();
@@ -135,7 +157,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
     }
 
     [Fact]
-    public async Task DeleteAsync_ShouldRemoveHabit()
+    public async Task DeleteAsync_ShouldSoftDeleteHabit()
     {
         // Arrange
         var habit = Fixture.Create<Habit>();
@@ -143,10 +165,12 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         await _repository.DeleteAsync(habit.Id);
+        await _repository.SaveChangesAsync(default);
 
-        // Assert
+        // Assert - repository soft-deletes by setting IsActive = false
         var deletedHabit = await _repository.GetByIdAsync(habit.Id);
-        deletedHabit.Should().BeNull();
+        deletedHabit.Should().NotBeNull();
+        deletedHabit!.IsActive.Should().BeFalse();
     }
 
     [Fact]
@@ -157,11 +181,14 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         await SeedDatabaseAsync(habit);
         
         var entry = Fixture.Build<HabitEntry>()
+            .OmitAutoProperties()
             .With(e => e.HabitId, habit.Id)
+            .With(e => e.Habit, (Habit?)null)
             .Create();
 
         // Act
         var result = await _repository.AddHabitEntryAsync(entry);
+        await _repository.SaveChangesAsync(default);
 
         // Assert
         result.Should().NotBeNull();
@@ -185,14 +212,18 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         
         // Create entries within the date range
         var entries = Fixture.Build<HabitEntry>()
+            .OmitAutoProperties()
             .With(e => e.HabitId, habit.Id)
-            .With(e => e.Date, (DateTime)Fixture.Create<DateOnly>().ToDateTime(TimeOnly.MinValue))
+            .With(e => e.Habit, (Habit?)null)
+            .With(e => e.Date, DateTime.UtcNow.Date.AddDays(-2))
             .CreateMany(2)
             .ToArray();
             
         // Create entries outside the date range to ensure they are excluded
         var outsideRangeEntries = Fixture.Build<HabitEntry>()
+            .OmitAutoProperties()
             .With(e => e.HabitId, habit.Id)
+            .With(e => e.Habit, (Habit?)null)
             .With(e => e.Date, DateTime.UtcNow.Date.AddDays(-10))
             .CreateMany(1)
             .ToArray();
@@ -216,6 +247,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         await _repository.UpdateStreakAsync(habit.Id);
+        await _repository.SaveChangesAsync(default);
 
         // Assert
         var updatedHabit = await _repository.GetByIdAsync(habit.Id);

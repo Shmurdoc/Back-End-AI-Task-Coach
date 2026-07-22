@@ -28,7 +28,14 @@ builder.Services.AddHostedService<WebAPI.Background.ProcrastinationRecoveryWorke
 var jwtKey = builder.Configuration.GetSection("Jwt")["Key"];
 if (string.IsNullOrEmpty(jwtKey))
 {
-    throw new InvalidOperationException("JWT Key is not configured. Set Jwt:Key in configuration or environment variables.");
+    if (builder.Environment.IsDevelopment())
+    {
+        jwtKey = "development-secret-key-that-is-at-least-32-characters!";
+    }
+    else
+    {
+        throw new InvalidOperationException("JWT Key is not configured. Set Jwt:Key in configuration or environment variables.");
+    }
 }
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
