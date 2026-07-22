@@ -1,4 +1,4 @@
-﻿using Domain.Enums.extension.helper;
+﻿using Domain.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace Domain.Entities

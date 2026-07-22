@@ -1,6 +1,6 @@
 using Application.IRepositories;
 using Domain.Entities;
-using Domain.Enums.extension.helper;
+using Domain.Enums;
 using Infrastructure.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 
