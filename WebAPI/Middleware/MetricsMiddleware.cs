@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using WebAPI.Extensions;
+using Application.Extensions;
 
 namespace WebAPI.Middleware;
 

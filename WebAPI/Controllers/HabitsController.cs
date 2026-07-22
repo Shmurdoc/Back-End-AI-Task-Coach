@@ -40,7 +40,7 @@ public class HabitsController : ControllerBase
         [AllowAnonymous]
         public IActionResult Index()
         {
-            WebAPI.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
+            Application.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
             return Ok(new { success = true, message = "Habits API root." });
         }
 }

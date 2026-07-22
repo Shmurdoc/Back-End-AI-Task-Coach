@@ -53,8 +53,7 @@ public class TasksController : ControllerBase
         [AllowAnonymous]
         public IActionResult Index()
         {
-            // Increment the nudges_delivered metric as a placeholder for test
-            WebAPI.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
+            Application.Extensions.ObservabilityExtensions.NudgesDelivered.Add(1);
             return Ok(new { success = true, message = "Tasks API root." });
         }
 }
