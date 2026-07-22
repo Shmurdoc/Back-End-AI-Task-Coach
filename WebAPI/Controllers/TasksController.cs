@@ -1,7 +1,6 @@
 using Application.CQRS.Commands.Tasks;
 using Application.CQRS.Queries.Tasks;
 using Application.DTOs.TaskDtos;
-using Application.IService;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,8 +14,7 @@ namespace WebAPI.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly IAdaptiveSchedulingEngine _scheduler;
-    public TasksController(IMediator mediator, IAdaptiveSchedulingEngine scheduler) { _mediator = mediator; _scheduler = scheduler; }
+    public TasksController(IMediator mediator) { _mediator = mediator; }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
@@ -34,7 +32,6 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateTaskDto dto, CancellationToken cancellationToken)
     {
         var created = await _mediator.Send(new CreateTaskCommand(dto), cancellationToken);
-        _ = _scheduler.RescheduleAsync(created.UserId);
         return CreatedAtAction(nameof(Get), new { id = created.Id }, new { success = true, data = created });
     }
 
@@ -42,7 +39,6 @@ public class TasksController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateTaskDto dto, CancellationToken cancellationToken)
     {
         var updated = await _mediator.Send(new UpdateTaskCommand(id, dto), cancellationToken);
-        _ = _scheduler.RescheduleAsync(updated.UserId);
         return Ok(new { success = true, data = updated });
     }
 

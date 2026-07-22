@@ -1,6 +1,7 @@
 using Application.CQRS.Commands.Tasks;
 using Application.DTOs.TaskDtos;
 using Application.IRepositories;
+using Application.IService;
 using Domain.Entities;
 using MediatR;
 
@@ -9,9 +10,11 @@ namespace Application.CQRS.Handlers.Tasks;
 public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskDto>
 {
     private readonly ITaskRepository _taskRepository;
-    public CreateTaskCommandHandler(ITaskRepository taskRepository)
+    private readonly IAdaptiveSchedulingEngine _scheduler;
+    public CreateTaskCommandHandler(ITaskRepository taskRepository, IAdaptiveSchedulingEngine scheduler)
     {
         _taskRepository = taskRepository;
+        _scheduler = scheduler;
     }
 
     public async Task<TaskDto> Handle(CreateTaskCommand request, CancellationToken cancellationToken)
@@ -40,6 +43,7 @@ public class CreateTaskCommandHandler : IRequestHandler<CreateTaskCommand, TaskD
             UpdatedAt = DateTime.UtcNow
         };
         var created = await _taskRepository.AddAsync(task);
+        await _scheduler.RescheduleAsync(created.UserId);
         return new TaskDto(
             created.Id,
             created.Title,

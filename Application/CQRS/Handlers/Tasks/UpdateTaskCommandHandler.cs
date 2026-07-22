@@ -1,6 +1,7 @@
 using Application.CQRS.Commands.Tasks;
 using Application.DTOs.TaskDtos;
 using Application.IRepositories;
+using Application.IService;
 using Domain.Entities;
 using MediatR;
 
@@ -9,9 +10,11 @@ namespace Application.CQRS.Handlers.Tasks;
 public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskDto>
 {
     private readonly ITaskRepository _taskRepository;
-    public UpdateTaskCommandHandler(ITaskRepository taskRepository)
+    private readonly IAdaptiveSchedulingEngine _scheduler;
+    public UpdateTaskCommandHandler(ITaskRepository taskRepository, IAdaptiveSchedulingEngine scheduler)
     {
         _taskRepository = taskRepository;
+        _scheduler = scheduler;
     }
 
     public async Task<TaskDto> Handle(UpdateTaskCommand request, CancellationToken cancellationToken)
@@ -36,6 +39,7 @@ public class UpdateTaskCommandHandler : IRequestHandler<UpdateTaskCommand, TaskD
         if (dto.GoalId is not null) task.GoalId = dto.GoalId;
         task.UpdatedAt = DateTime.UtcNow;
         var updated = await _taskRepository.UpdateAsync(task);
+        await _scheduler.RescheduleAsync(updated.UserId);
         return new TaskDto(
             updated.Id,
             updated.Title,
