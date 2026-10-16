@@ -14,10 +14,8 @@ public interface IGoalRepository
     Task<Goal> AddAsync(Goal goal);
     Task<Goal> UpdateAsync(Goal goal);
     Task<bool> DeleteAsync(Guid id);
-    
+
     // Gamification methods
     Task<int> GetGoalCountByUserAsync(Guid userId);
     Task<int> GetCompletedGoalCountByUserAsync(Guid userId);
-    
-    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -44,19 +44,16 @@ public class HabitRepository : IHabitRepository
             .ToListAsync();
     }
 
-    public async Task<Habit> AddAsync(Habit habit)
+    public Task<Habit> AddAsync(Habit habit)
     {
-        habit.CreatedAt = DateTime.UtcNow;
-        habit.UpdatedAt = DateTime.UtcNow;
         _context.Habits.Add(habit);
-        return habit;
+        return Task.FromResult(habit);
     }
 
-    public async Task<Habit> UpdateAsync(Habit habit)
+    public Task<Habit> UpdateAsync(Habit habit)
     {
-        habit.UpdatedAt = DateTime.UtcNow;
         _context.Habits.Update(habit);
-        return habit;
+        return Task.FromResult(habit);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -65,17 +62,15 @@ public class HabitRepository : IHabitRepository
         if (habit != null)
         {
             habit.IsActive = false;
-            habit.UpdatedAt = DateTime.UtcNow;
             return true;
         }
         return false;
     }
 
-    public async Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry)
+    public Task<HabitEntry> AddHabitEntryAsync(HabitEntry entry)
     {
-        entry.CreatedAt = DateTime.UtcNow;
         _context.HabitEntries.Add(entry);
-        return entry;
+        return Task.FromResult(entry);
     }
 
     public async Task<IEnumerable<HabitEntry>> GetHabitEntriesAsync(Guid habitId, DateTime startDate, DateTime endDate)
@@ -213,11 +208,6 @@ public class HabitRepository : IHabitRepository
 
         var change = (double)(recentWeek - previousWeek) / previousWeek;
         return Math.Max(-1.0, Math.Min(1.0, change));
-    }
-
-    public async Task<int>SaveChangesAsync(CancellationToken cancellationToken)
-    {
-      return await _context.SaveChangesAsync(cancellationToken);
     }
 
     // Gamification methods

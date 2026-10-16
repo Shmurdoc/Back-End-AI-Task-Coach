@@ -20,6 +20,4 @@ public interface IHabitRepository
     // Gamification methods
     Task<int> GetHabitCountByUserAsync(Guid userId);
     Task<int> GetActiveHabitCountByUserAsync(Guid userId);
-
-    Task<int>SaveChangesAsync(CancellationToken cancellationToken); // Optional, if you want to handle SaveChanges in the repository
 }

@@ -3,9 +3,6 @@ using Application.IService;
 using Application.Services;
 using Infrastructure.Persistence.Data;
 using Infrastructure.Persistence.Repositories;
-using Infrastructure.Services;
-using Infrastructure.Services.Notification;
-using Infrastructure.Services.ExternalIntegrations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
@@ -30,17 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IUserRepository, UserRepository>();
 
         services.AddScoped<IGoalRepository, GoalRepository>();
-        services.AddScoped<IGamificationService, GamificationService>();
-
-        // Infrastructure Services
-        services.AddScoped<IFileUploadService, FileUploadService>();
-        services.AddScoped<Application.IService.IOCRService, OCRService>();
-        
-        // Notification Services (Infrastructure)
-        services.AddScoped<SmtpEmailProvider>();
-        services.AddScoped<SmsProvider>();
-        services.AddScoped<NotificationFactory>();
-        services.AddScoped<INotificationService, Infrastructure.Services.Notification.NotificationService>();
+        services.AddScoped<IEnergyMoodRepository, EnergyMoodRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
         return services;
     }
 }

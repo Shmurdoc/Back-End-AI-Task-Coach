@@ -45,21 +45,20 @@ public class GoalRepository : IGoalRepository
             .ToListAsync();
     }
 
-    public async Task<Goal> AddAsync(Goal goal)
+    public Task<Goal> AddAsync(Goal goal)
     {
         _context.Goals.Add(goal);
-        return goal;
+        return Task.FromResult(goal);
     }
 
-    public async Task<Goal> UpdateAsync(Goal goal)
+    public Task<Goal> UpdateAsync(Goal goal)
     {
-        goal.UpdatedAt = DateTime.UtcNow;
         if (goal.Status == GoalStatus.Completed && goal.CompletedAt == null)
         {
             goal.CompletedAt = DateTime.UtcNow;
         }
         _context.Goals.Update(goal);
-        return goal;
+        return Task.FromResult(goal);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -68,7 +67,6 @@ public class GoalRepository : IGoalRepository
         if (goal != null)
         {
             goal.Status = GoalStatus.Cancelled;
-            goal.UpdatedAt = DateTime.UtcNow;
             return true;
         }
         return false;
@@ -77,11 +75,6 @@ public class GoalRepository : IGoalRepository
     public async Task<bool> UserExistsAsync(Guid userId)
     {
         return await _context.Users.AnyAsync(u => u.Id == userId);
-    }
-
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-       return await _context.SaveChangesAsync(cancellationToken);
     }
 
     // Gamification methods

@@ -22,6 +22,7 @@ public class ApplicationDbContext : DbContext
     public DbSet<HabitAnalytics> HabitAnalytics { get; set; } = null!;
     public DbSet<Goal> Goals { get; set; } = null!;
     public DbSet<TaskItem> Tasks { get; set; } = null!;
+    public DbSet<EnergyMoodEntry> EnergyMoodEntries { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,6 +143,20 @@ public class ApplicationDbContext : DbContext
                 .WithMany(g => g.Tasks)
                 .HasForeignKey(e => e.GoalId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // EnergyMoodEntry configuration
+        modelBuilder.Entity<EnergyMoodEntry>(entity =>
+        {
+            entity.ToTable("EnergyMoodEntries");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.Timestamp });
+            entity.Property(e => e.Note).HasMaxLength(500);
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 

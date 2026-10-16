@@ -180,11 +180,6 @@ public class UserRepository : IUserRepository
         }
     }
 
-    public async Task SaveChangesAsync()
-    {
-        await _context.SaveChangesAsync();
-    }
-
     public async Task<UserPreferences?> GetPreferencesAsync(Guid userId)
     {
         try

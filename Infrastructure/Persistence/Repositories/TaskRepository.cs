@@ -56,26 +56,23 @@ public class TaskRepository : ITaskRepository
             .ToListAsync();
     }
 
-    public async Task<TaskItem> AddAsync(TaskItem task)
+    public Task<TaskItem> AddAsync(TaskItem task)
     {
         if (task.UserId == Guid.Empty)
             throw new ArgumentException("UserId cannot be empty");
 
-        task.CreatedAt = DateTime.UtcNow;
-        task.UpdatedAt = DateTime.UtcNow;
         _context.Tasks.Add(task);
-        return task;
+        return Task.FromResult(task);
     }
 
-    public async Task<TaskItem> UpdateAsync(TaskItem task)
+    public Task<TaskItem> UpdateAsync(TaskItem task)
     {
-        task.UpdatedAt = DateTime.UtcNow;
         if (task.Status == TaskItemStatus.Completed && task.CompletedAt == null)
         {
             task.CompletedAt = DateTime.UtcNow;
         }
         _context.Tasks.Update(task);
-        return task;
+        return Task.FromResult(task);
     }
 
     public async Task<bool> DeleteAsync(Guid id)
@@ -84,15 +81,9 @@ public class TaskRepository : ITaskRepository
         if (task != null)
         {
             task.Status = TaskItemStatus.Cancelled;
-            task.UpdatedAt = DateTime.UtcNow;
             return true;
         }
         return false;
-    }
-
-    public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
-    {
-        return await _context.SaveChangesAsync(cancellationToken);
     }
 
     // Gamification methods
