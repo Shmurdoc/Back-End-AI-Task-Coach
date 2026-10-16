@@ -1,12 +1,7 @@
+using Application.DTOs.AuthDtos;
 using FluentValidation;
 
 namespace Application.Validators;
-
-public class LoginRequest
-{
-    public string Email { get; set; } = string.Empty;
-    public string Password { get; set; } = string.Empty;
-}
 
 public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {

@@ -2,114 +2,119 @@ using Application.IService;
 using Application.IRepositories;
 using Application.DTOs.Analytics;
 using Application.DTOs.Gamification;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 
 namespace Application.Services
 {
+    /// <summary>
+    /// Every gamification value is recomputed from real activity (tasks, goals,
+    /// habits) on each read. No points, badge or streak ledger exists — anything
+    /// not derivable from completion timestamps is not reported.
+    /// </summary>
     public class GamificationService : IGamificationService
     {
         private readonly IUserRepository _userRepository;
         private readonly ITaskRepository _taskRepository;
         private readonly IHabitRepository _habitRepository;
         private readonly IGoalRepository _goalRepository;
-        private readonly ILogger<GamificationService> _logger;
+
+        // Streak history is rebuilt from completed-task timestamps over this
+        // window; there is no permanent streak table.
+        private const int StreakHistoryDays = 365;
 
         public GamificationService(
             IUserRepository userRepository,
             ITaskRepository taskRepository,
             IHabitRepository habitRepository,
-            IGoalRepository goalRepository,
-            ILogger<GamificationService> logger)
+            IGoalRepository goalRepository)
         {
             _userRepository = userRepository;
             _taskRepository = taskRepository;
             _habitRepository = habitRepository;
             _goalRepository = goalRepository;
-            _logger = logger;
-        }
-
-        public async Task<int> AwardPointsAsync(Guid userId, int points, string reason)
-        {
-            _logger.LogInformation("Awarding {Points} points to user {UserId} for: {Reason}", points, userId, reason);
-            // TODO: Implement points storage in database
-            // For now, return calculated points based on user activity
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
-            return taskCount * 10 + points;
         }
 
         public async Task<int> GetUserPointsAsync(Guid userId)
         {
-            // Calculate points based on user activities
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
-            var habitCount = await _habitRepository.GetHabitCountByUserAsync(userId);
-            var goalCount = await _goalRepository.GetGoalCountByUserAsync(userId);
-            
-            return (taskCount * 10) + (habitCount * 25) + (goalCount * 50);
+            // Derived score: 10 pts per completed task, 50 per completed goal,
+            // 25 per actively tracked habit. Recomputed on every read.
+            var completedTasks = await _taskRepository.GetCompletedTaskCountByUserAsync(userId);
+            var completedGoals = await _goalRepository.GetCompletedGoalCountByUserAsync(userId);
+            var activeHabits = await _habitRepository.GetActiveHabitCountByUserAsync(userId);
+
+            return (completedTasks * 10) + (completedGoals * 50) + (activeHabits * 25);
         }
 
         public async Task<List<UserBadge>> GetUserBadgesAsync(Guid userId)
         {
             var badges = new List<UserBadge>();
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
+            var completedTasks = await _taskRepository.GetCompletedTaskCountByUserAsync(userId);
             var streak = await GetCurrentStreakAsync(userId);
 
-            // Task completion badges
-            if (taskCount >= 10)
-                badges.Add(new UserBadge(Guid.NewGuid(), "Task Starter", "Completed 10 tasks", "/badges/task-starter.png", DateTime.UtcNow.AddDays(-5), "Task completion milestone"));
-            
-            if (taskCount >= 50)
-                badges.Add(new UserBadge(Guid.NewGuid(), "Task Master", "Completed 50 tasks", "/badges/task-master.png", DateTime.UtcNow.AddDays(-10), "Task completion milestone", BadgeRarity.Rare));
-            
-            // Streak badges
+            // Badges are derived on read (no badge ledger), so AwardedAt is the
+            // evaluation time rather than the original milestone moment.
+            if (completedTasks >= 10)
+                badges.Add(new UserBadge(Guid.NewGuid(), "Task Starter", "Completed 10 tasks", "/badges/task-starter.png", DateTime.UtcNow, "Task completion milestone"));
+
+            if (completedTasks >= 50)
+                badges.Add(new UserBadge(Guid.NewGuid(), "Task Master", "Completed 50 tasks", "/badges/task-master.png", DateTime.UtcNow, "Task completion milestone", BadgeRarity.Rare));
+
             if (streak >= 7)
-                badges.Add(new UserBadge(Guid.NewGuid(), "Week Warrior", "7-day streak", "/badges/week-warrior.png", DateTime.UtcNow.AddDays(-2), "Streak achievement"));
-            
+                badges.Add(new UserBadge(Guid.NewGuid(), "Week Warrior", "7-day streak", "/badges/week-warrior.png", DateTime.UtcNow, "Streak achievement"));
+
             if (streak >= 30)
-                badges.Add(new UserBadge(Guid.NewGuid(), "Month Master", "30-day streak", "/badges/month-master.png", DateTime.UtcNow.AddDays(-5), "Streak achievement", BadgeRarity.Epic));
+                badges.Add(new UserBadge(Guid.NewGuid(), "Month Master", "30-day streak", "/badges/month-master.png", DateTime.UtcNow, "Streak achievement", BadgeRarity.Epic));
 
             return badges;
         }
 
-        public async Task<UserBadge?> AwardBadgeAsync(Guid userId, string badgeType, string reason)
-        {
-            _logger.LogInformation("Awarding badge {BadgeType} to user {UserId} for: {Reason}", badgeType, userId, reason);
-            
-            return badgeType.ToLower() switch
-            {
-                "first-task" => new UserBadge(Guid.NewGuid(), "First Steps", "Completed your first task", "/badges/first-task.png", DateTime.UtcNow, reason),
-                "productivity-pro" => new UserBadge(Guid.NewGuid(), "Productivity Pro", "Exceptional productivity", "/badges/productivity-pro.png", DateTime.UtcNow, reason, BadgeRarity.Rare),
-                _ => null
-            };
-        }
-
-        public async Task<int> UpdateStreakAsync(Guid userId, bool taskCompleted)
-        {
-            if (taskCompleted)
-            {
-                var currentStreak = await GetCurrentStreakAsync(userId);
-                return currentStreak + 1;
-            }
-            return 0; // Streak broken
-        }
-
         public async Task<int> GetCurrentStreakAsync(Guid userId)
         {
-            // TODO: Implement actual streak calculation from database
-            // For now, return a mock value based on recent task activity
-            var recentTasks = await _taskRepository.GetRecentTasksByUserAsync(userId, 7);
-            return Math.Min(recentTasks.Count(), 7); // Simple streak calculation
+            var dates = await GetCompletionDatesAsync(userId);
+
+            var day = DateTime.UtcNow.Date;
+            // Today's streak survives until the day ends: only a full day
+            // without any completion breaks it.
+            if (!dates.Contains(day))
+                day = day.AddDays(-1);
+
+            var streak = 0;
+            while (dates.Contains(day))
+            {
+                streak++;
+                day = day.AddDays(-1);
+            }
+            return streak;
         }
 
         public async Task<int> GetBestStreakAsync(Guid userId)
         {
-            // TODO: Implement actual best streak from user statistics
-            var currentStreak = await GetCurrentStreakAsync(userId);
-            return Math.Max(currentStreak, 15); // Mock best streak
+            // Longest run of consecutive days with at least one completed task
+            // inside the retained window (no permanent best-streak ledger).
+            var dates = (await GetCompletionDatesAsync(userId)).OrderBy(d => d).ToList();
+
+            var best = 0;
+            var run = 0;
+            DateTime? previous = null;
+            foreach (var date in dates)
+            {
+                run = (previous != null && date == previous.Value.AddDays(1)) ? run + 1 : 1;
+                if (run > best) best = run;
+                previous = date;
+            }
+            return best;
+        }
+
+        private async Task<HashSet<DateTime>> GetCompletionDatesAsync(Guid userId)
+        {
+            var completed = await _taskRepository.GetRecentTasksByUserAsync(userId, StreakHistoryDays);
+            return completed
+                .Where(t => t.CompletedAt.HasValue)
+                .Select(t => t.CompletedAt!.Value.Date)
+                .ToHashSet();
         }
 
         public async Task<int> GetUserLevelAsync(Guid userId)
@@ -118,47 +123,45 @@ namespace Application.Services
             return (experience / 1000) + 1; // 1000 XP per level
         }
 
-        public async Task<int> AddExperienceAsync(Guid userId, int experience, string activity)
-        {
-            _logger.LogInformation("Adding {Experience} XP to user {UserId} for: {Activity}", experience, userId, activity);
-            var currentXP = await GetUserExperienceAsync(userId);
-            return currentXP + experience;
-        }
-
         public async Task<int> GetUserExperienceAsync(Guid userId)
         {
+            // Points convert to XP at a fixed 2:1 rate; there is no separate
+            // experience store.
             var points = await GetUserPointsAsync(userId);
-            return points * 2; // Convert points to experience
+            return points * 2;
         }
 
         public async Task<List<LeaderboardEntry>> GetLeaderboardAsync(LeaderboardType type, int limit = 10)
         {
-            // TODO: Implement actual leaderboard from database
-            // For now, return mock leaderboard data
-            return new List<LeaderboardEntry>
-            {
-                new LeaderboardEntry(Guid.NewGuid(), "ProductivityMaster", 2500, 1),
-                new LeaderboardEntry(Guid.NewGuid(), "TaskNinja", 2200, 2),
-                new LeaderboardEntry(Guid.NewGuid(), "HabitHero", 1900, 3),
-                new LeaderboardEntry(Guid.NewGuid(), "GoalGetter", 1750, 4),
-                new LeaderboardEntry(Guid.NewGuid(), "FocusedOne", 1600, 5)
-            }.Take(limit).ToList();
-        }
+            var users = (await _userRepository.GetActiveUsersAsync()).ToList();
+            var scored = new List<LeaderboardEntry>(users.Count);
 
-        public async Task<int> GetUserRankAsync(Guid userId, LeaderboardType type)
-        {
-            var leaderboard = await GetLeaderboardAsync(type, 100);
-            var userEntry = leaderboard.FirstOrDefault(e => e.UserId == userId);
-            return userEntry?.Rank ?? 50; // Default rank if not found
+            foreach (var user in users)
+            {
+                int score = type switch
+                {
+                    LeaderboardType.TasksCompleted => await _taskRepository.GetCompletedTaskCountByUserAsync(user.Id),
+                    LeaderboardType.CurrentStreak => await GetCurrentStreakAsync(user.Id),
+                    _ => await GetUserPointsAsync(user.Id),
+                };
+                scored.Add(new LeaderboardEntry(user.Id, user.Name, score, 0));
+            }
+
+            // Real ranking over active users; an empty table yields an empty
+            // board rather than fabricated entries.
+            return scored
+                .OrderByDescending(e => e.Score)
+                .Take(limit)
+                .Select((entry, index) => entry with { Rank = index + 1 })
+                .ToList();
         }
 
         public async Task<List<Achievement>> CheckAchievementsAsync(Guid userId)
         {
             var achievements = new List<Achievement>();
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
+            var completedTasks = await _taskRepository.GetCompletedTaskCountByUserAsync(userId);
             var streak = await GetCurrentStreakAsync(userId);
 
-            // Task achievements
             achievements.Add(new Achievement(
                 Guid.NewGuid(),
                 "Task Completionist",
@@ -166,13 +169,12 @@ namespace Application.Services
                 "/achievements/task-completionist.png",
                 500,
                 AchievementType.TaskCompletion,
-                taskCount >= 100,
-                taskCount >= 100 ? DateTime.UtcNow.AddDays(-1) : null,
-                Math.Min((double)taskCount / 100, 1.0),
-                $"{taskCount}/100 tasks completed"
+                completedTasks >= 100,
+                completedTasks >= 100 ? DateTime.UtcNow.AddDays(-1) : null,
+                Math.Min((double)completedTasks / 100, 1.0),
+                $"{completedTasks}/100 tasks completed"
             ));
 
-            // Streak achievements
             achievements.Add(new Achievement(
                 Guid.NewGuid(),
                 "Consistency Champion",
@@ -191,8 +193,19 @@ namespace Application.Services
 
         public async Task<List<Challenge>> GetActiveChallengesAsync(Guid userId)
         {
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
+            var recent = (await _taskRepository.GetRecentTasksByUserAsync(userId, 7))
+                .Where(t => t.CompletedAt.HasValue)
+                .ToList();
+
             var today = DateTime.UtcNow.Date;
+            var weekStart = today.AddDays(-(int)today.DayOfWeek);
+
+            int dailyCompletions = recent.Count(t => t.CompletedAt!.Value.Date == today);
+            int weeklyCompletions = recent.Count(t =>
+            {
+                var d = t.CompletedAt!.Value.Date;
+                return d >= weekStart && d <= today;
+            });
 
             return new List<Challenge>
             {
@@ -202,11 +215,11 @@ namespace Application.Services
                     "Complete 5 tasks today",
                     ChallengeType.Daily,
                     5,
-                    Math.Min(taskCount % 5, 5), // Mock daily progress
+                    Math.Min(dailyCompletions, 5),
                     today,
                     today.AddDays(1),
                     100,
-                    taskCount % 5 >= 5,
+                    dailyCompletions >= 5,
                     "Daily Star"
                 ),
                 new Challenge(
@@ -215,41 +228,23 @@ namespace Application.Services
                     "Complete 25 tasks this week",
                     ChallengeType.Weekly,
                     25,
-                    Math.Min(taskCount % 25, 25), // Mock weekly progress
-                    today.AddDays(-(int)today.DayOfWeek),
+                    Math.Min(weeklyCompletions, 25),
+                    weekStart,
                     today.AddDays(7 - (int)today.DayOfWeek),
                     500,
-                    taskCount % 25 >= 25,
+                    weeklyCompletions >= 25,
                     "Weekly Champion"
                 )
             };
-        }
-
-        public async Task<bool> CompleteObjectiveAsync(Guid userId, string objectiveType, object data)
-        {
-            _logger.LogInformation("User {UserId} completed objective: {ObjectiveType}", userId, objectiveType);
-            
-            // Award points based on objective type
-            int points = objectiveType.ToLower() switch
-            {
-                "task_completed" => 10,
-                "habit_completed" => 25,
-                "goal_achieved" => 100,
-                "streak_maintained" => 50,
-                _ => 5
-            };
-
-            await AwardPointsAsync(userId, points, $"Completed {objectiveType}");
-            return true;
         }
 
         public async Task<string> GetMotivationalMessageAsync(Guid userId)
         {
             var level = await GetUserLevelAsync(userId);
             var streak = await GetCurrentStreakAsync(userId);
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
+            var completedTasks = await _taskRepository.GetCompletedTaskCountByUserAsync(userId);
 
-            return (level, streak, taskCount) switch
+            return (level, streak, completedTasks) switch
             {
                 var (l, s, t) when s >= 7 => $"🔥 Amazing {s}-day streak! You're on fire!",
                 var (l, s, t) when l >= 5 => $"🌟 Level {l} achiever! Your dedication is inspiring!",
@@ -260,58 +255,29 @@ namespace Application.Services
             };
         }
 
-        public async Task<string> GetCelebrationMessageAsync(Guid userId, string achievement)
-        {
-            var userName = (await _userRepository.GetByIdAsync(userId))?.Name ?? "Champion";
-            
-            return achievement.ToLower() switch
-            {
-                "task_completed" => $"🎉 Well done, {userName}! Another task conquered!",
-                "streak_milestone" => $"🔥 Incredible streak, {userName}! You're unstoppable!",
-                "level_up" => $"⭐ Level up, {userName}! Your growth is amazing!",
-                "badge_earned" => $"🏅 New badge unlocked, {userName}! You've earned it!",
-                "goal_achieved" => $"🎯 Goal smashed, {userName}! Celebration time!",
-                _ => $"🌟 Fantastic work, {userName}! Keep shining!"
-            };
-        }
-
         public async Task<GamificationSummaryDto> GetGamificationSummaryAsync(Guid userId)
         {
             var currentStreak = await GetCurrentStreakAsync(userId);
             var bestStreak = await GetBestStreakAsync(userId);
-            var taskCount = await _taskRepository.GetTaskCountByUserAsync(userId);
+            var completedTasks = await _taskRepository.GetCompletedTaskCountByUserAsync(userId);
+            var totalTasks = await _taskRepository.GetTaskCountByUserAsync(userId);
             var habitCount = await _habitRepository.GetHabitCountByUserAsync(userId);
             var goalCount = await _goalRepository.GetGoalCountByUserAsync(userId);
             var motivationalMessage = await GetMotivationalMessageAsync(userId);
 
-            // Calculate completion rate
-            double completionRate = taskCount > 0 ? Math.Min((double)currentStreak / taskCount, 1.0) : 0.0;
+            // Completion rate = completed / total tasks (the old formula
+            // divided streak by task count, which is not a rate).
+            double completionRate = totalTasks > 0 ? (double)completedTasks / totalTasks : 0.0;
 
             return new GamificationSummaryDto(
                 CurrentStreak: currentStreak,
                 BestStreak: bestStreak,
                 CompletionRate: completionRate,
-                TotalTasks: taskCount,
+                TotalTasks: totalTasks,
                 TotalGoals: goalCount,
                 TotalHabits: habitCount,
                 MotivationalMessage: motivationalMessage
             );
-        }
-
-        public async Task<bool> DetectRelapseAsync(Guid userId, CancellationToken cancellationToken = default)
-        {
-            var currentStreak = await GetCurrentStreakAsync(userId);
-            var recentTasks = await _taskRepository.GetRecentTasksByUserAsync(userId, 3);
-            
-            // Detect relapse if no tasks completed in last 3 days and had a streak
-            bool hasRelapsed = currentStreak == 0 && !recentTasks.Any() && await GetBestStreakAsync(userId) > 0;
-            
-            if (hasRelapsed)
-            {
-                _logger.LogWarning("Relapse detected for user {UserId}", userId);
-            }
-            
-            return hasRelapsed;
         }
     }
 }

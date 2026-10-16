@@ -1,9 +1,4 @@
 ﻿using Application.DTOs.HabitDtos;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Application.IService
 {
@@ -15,11 +10,5 @@ namespace Application.IService
         Task<HabitDto?> GetHabitByIdAsync(Guid habitId, CancellationToken cancellationToken);
         Task<HabitDto> UpdateHabitAsync(Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken);
         Task<bool> DeleteHabitAsync(Guid habitId, CancellationToken cancellationToken);
-
-        // For controller compatibility:
-        Task<HabitDto?> GetHabitAsync(Guid id);
-        Task<HabitDto?> CreateHabitAsync(HabitDto dto);
-        Task UpdateHabitAsync(HabitDto dto);
-        Task DeleteHabitAsync(Guid id);
     }
 }

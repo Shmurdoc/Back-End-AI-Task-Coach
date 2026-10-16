@@ -10,10 +10,8 @@ namespace Application.IService
     public interface IAnalyticsService
     {
         Task<ProductivitySummaryDto> CalculateUserStats(Guid userId);
-
-        // Controller-compatible stubs
         Task<ProductivitySummaryDto> GetProductivitySummaryAsync(Guid userId, CancellationToken cancellationToken = default);
-        Task GenerateUserReportAsync(Guid userId, CancellationToken cancellationToken = default);
-        Task GetHabitSummaryAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<UserReportDto> GenerateUserReportAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task<HabitSummaryDto> GetHabitSummaryAsync(Guid userId, CancellationToken cancellationToken = default);
     }
 }

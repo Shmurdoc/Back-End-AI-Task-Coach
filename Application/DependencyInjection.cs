@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Application.IService;
 using Application.Services;
 using System.Reflection;
-using MediatR;
 using FluentValidation;
 
 namespace Application;
@@ -11,25 +10,22 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddApplication(this IServiceCollection services)
     {
-        services.AddMediatR(Assembly.GetExecutingAssembly());
-        services.AddAutoMapper(Assembly.GetExecutingAssembly());
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
 
-        // Register HttpClient for AI service
+        // Typed HttpClient is the single registration for IAIService (DI applies
+        // HttpClient lifetime best practice; a second AddScoped would shadow it).
         services.AddHttpClient<IAIService, AIService>();
-        services.AddScoped<IAIService, AIService>();
-        
-        // Register authentication services
+
         services.AddScoped<ITokenService, TokenService>();
+        services.AddScoped<ITaskService, TaskService>();
+        services.AddScoped<IGoalService, GoalService>();
         services.AddScoped<ICalendarExportService, CalendarExportService>();
-        services.AddScoped<IService.Focus.IFocusToolIntegrationService, Services.Focus.FocusToolIntegrationService>();
         services.AddScoped<IService.Analytics.IEnergyMoodService, Services.Analytics.EnergyMoodService>();
         services.AddScoped<IService.Goal.IGoalDecompositionService, Services.Goal.GoalDecompositionService>();
         services.AddScoped<IService.IGamificationService, Services.GamificationService>();
-        services.AddScoped<IHabitService, Service.HabitService>();
-        services.AddScoped<IAdaptiveSchedulingEngine, Service.AdaptiveSchedulingEngine>();
-        // Register AI/ML services
-        // AI services are registered in WebAPI through AIPredictionServiceRegistration
+        services.AddScoped<IHabitService, HabitService>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IAnalyticsService, AnalyticsService>();
         return services;
     }
 }

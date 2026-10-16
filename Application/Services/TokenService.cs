@@ -65,6 +65,47 @@ public class TokenService : ITokenService
         }
     }
 
+    public string GenerateRefreshToken(Guid userId, string email, string username)
+    {
+        try
+        {
+            var jwtSettings = GetJwtSettings();
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
+            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+                new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Name, username),
+                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, email),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+                // Marks this token as refresh-only so it is rejected by the
+                // auth middleware and by RefreshTokenAsync when used as an access token.
+                new Claim("token_use", "refresh")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtSettings.Issuer,
+                audience: jwtSettings.Audience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(jwtSettings.RefreshExpiresInDays),
+                signingCredentials: credentials
+            );
+
+            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+            _logger.LogInformation("Refresh token generated for user: {UserId}", userId);
+            return tokenString;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating refresh token for user: {UserId}", userId);
+            throw new InvalidOperationException("Failed to generate refresh token", ex);
+        }
+    }
+
     public async Task<string> GenerateTokenAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         try
@@ -120,7 +161,7 @@ public class TokenService : ITokenService
         }
     }
 
-    public async Task<string> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
+    public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -138,16 +179,23 @@ public class TokenService : ITokenService
                 ValidIssuer = jwtSettings.Issuer,
                 ValidateAudience = true,
                 ValidAudience = jwtSettings.Audience,
-                ValidateLifetime = false, // Don't validate lifetime for refresh
+                ValidateLifetime = true, // an expired refresh token must be rejected
                 ClockSkew = TimeSpan.Zero
             };
 
             var principal = tokenHandler.ValidateToken(refreshToken, validationParameters, out SecurityToken validatedToken);
-            
-            if (validatedToken is not JwtSecurityToken jwtToken || 
+
+            if (validatedToken is not JwtSecurityToken jwtToken ||
                 !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new SecurityTokenException("Invalid token");
+            }
+
+            // Only refresh-scoped tokens may be exchanged; an access token is not
+            // a refresh token even though it carries the same identity claims.
+            if (!string.Equals(principal.FindFirst("token_use")?.Value, "refresh", StringComparison.Ordinal))
+            {
+                throw new SecurityTokenException("Not a refresh token");
             }
 
             var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -171,7 +219,7 @@ public class TokenService : ITokenService
                 throw new UnauthorizedAccessException("User not found or inactive");
             }
 
-            return GenerateToken(userId, emailClaim, nameClaim);
+            return (GenerateToken(userId, emailClaim, nameClaim), GenerateRefreshToken(userId, emailClaim, nameClaim));
         }
         catch (Exception ex)
         {
@@ -239,7 +287,8 @@ public class TokenService : ITokenService
             Key = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key not configured"),
             Issuer = jwtSection["Issuer"] ?? throw new InvalidOperationException("JWT Issuer not configured"),
             Audience = jwtSection["Audience"] ?? throw new InvalidOperationException("JWT Audience not configured"),
-            ExpiresInMinutes = int.Parse(jwtSection["ExpiresInMinutes"] ?? "120")
+            ExpiresInMinutes = int.Parse(jwtSection["ExpiresInMinutes"] ?? "120"),
+            RefreshExpiresInDays = int.Parse(jwtSection["RefreshExpiresInDays"] ?? "7")
         };
     }
 
@@ -249,5 +298,6 @@ public class TokenService : ITokenService
         public string Issuer { get; set; } = string.Empty;
         public string Audience { get; set; } = string.Empty;
         public int ExpiresInMinutes { get; set; }
+        public int RefreshExpiresInDays { get; set; }
     }
 }

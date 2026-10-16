@@ -1,12 +1,13 @@
 using Application.DTOs.GoalDtos;
-using System;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace Application.IService.Goal
 {
     public interface IGoalDecompositionService
     {
-        Task<GoalDecompositionDto> DecomposeGoalAsync(Guid goalId, string goalTitle, CancellationToken ct = default);
+        /// <summary>
+        /// Decomposes a stored goal the caller owns. Returns null when the goal
+        /// does not exist or belongs to another user.
+        /// </summary>
+        Task<GoalDecompositionDto?> DecomposeGoalAsync(Guid goalId, CancellationToken ct = default);
     }
 }

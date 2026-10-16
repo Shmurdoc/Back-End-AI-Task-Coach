@@ -3,16 +3,18 @@ using Application.IRepositories;
 using Application.IService;
 using Domain.Entities;
 
-namespace Application.Service;
+namespace Application.Services;
 
 public class HabitService : IHabitService
 {
     private readonly IHabitRepository _habitRepository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IUserContext _userContext;
 
-    public HabitService(IHabitRepository habitRepository, IUserContext userContext)
+    public HabitService(IHabitRepository habitRepository, IUnitOfWork unitOfWork, IUserContext userContext)
     {
         _habitRepository = habitRepository;
+        _unitOfWork = unitOfWork;
         _userContext = userContext;
     }
 
@@ -47,7 +49,7 @@ public class HabitService : IHabitService
             UpdatedAt = DateTime.UtcNow
         };
         var createdHabit = await _habitRepository.AddAsync(habit);
-        await _habitRepository.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return new HabitDto(
             createdHabit.Id,
@@ -79,6 +81,7 @@ public class HabitService : IHabitService
 
     public async Task<IEnumerable<HabitDto>> GetUserHabitsAsync(Guid userId)
     {
+        if (userId != _userContext.GetCurrentUserId()) return Enumerable.Empty<HabitDto>();
         var habits = await _habitRepository.GetUserHabitsAsync(userId);
         return habits.Select(habit => new HabitDto(
             habit.Id,
@@ -112,14 +115,18 @@ public class HabitService : IHabitService
     {
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) throw new InvalidOperationException("Habit not found.");
+        if (habit.UserId != _userContext.GetCurrentUserId())
+            throw new InvalidOperationException("Habit not found.");
         habit.TrackProgress(value);
         await _habitRepository.UpdateAsync(habit);
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<HabitDto?> GetHabitByIdAsync(Guid habitId, CancellationToken cancellationToken)
     {
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) return null;
+        if (habit.UserId != _userContext.GetCurrentUserId()) return null;
         return new HabitDto(
             habit.Id,
             habit.Name,
@@ -152,6 +159,8 @@ public class HabitService : IHabitService
     {
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) throw new InvalidOperationException("Habit not found.");
+        if (habit.UserId != _userContext.GetCurrentUserId())
+            throw new InvalidOperationException("Habit not found.");
         if (dto.Name is not null) habit.Name = dto.Name;
         if (dto.Description is not null) habit.Description = dto.Description;
         if (dto.Frequency is not null) habit.Frequency = dto.Frequency.Value;
@@ -170,6 +179,7 @@ public class HabitService : IHabitService
         habit.UpdatedAt = DateTime.UtcNow;
 
         var updated = await _habitRepository.UpdateAsync(habit);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
         return new HabitDto(
             updated.Id,
             updated.Name,
@@ -200,63 +210,15 @@ public class HabitService : IHabitService
 
     public async Task<bool> DeleteHabitAsync(Guid habitId, CancellationToken cancellationToken)
     {
-        await _habitRepository.DeleteAsync(habitId);
-        return true;
-    }
-    // Controller-compatible methods
-    public async Task<HabitDto?> GetHabitAsync(Guid id)
-    {
-        // Delegate to GetHabitByIdAsync with default CancellationToken
-        return await GetHabitByIdAsync(id, CancellationToken.None);
-    }
+        var existing = await _habitRepository.GetByIdAsync(habitId);
+        if (existing == null || existing.UserId != _userContext.GetCurrentUserId())
+            return false;
 
-    public async Task<HabitDto?> CreateHabitAsync(HabitDto dto)
-    {
-        // Map HabitDto to CreateHabitDto and delegate
-        var createDto = new CreateHabitDto(
-            dto.Name,
-            dto.Description,
-            dto.Frequency,
-            dto.PreferredTime,
-            dto.TargetCount,
-            dto.Unit,
-            dto.Color,
-            dto.Icon,
-            dto.Motivation,
-            dto.Category,
-            dto.Triggers,
-            dto.Rewards,
-            dto.DifficultyLevel,
-            dto.EnvironmentFactors
-        );
-        return await CreateHabitAsync(createDto, CancellationToken.None);
-    }
-
-    public async Task UpdateHabitAsync(HabitDto dto)
-    {
-        // Map HabitDto to UpdateHabitDto and call the main update method
-        var updateDto = new UpdateHabitDto(
-            Name: dto.Name,
-            Description: dto.Description,
-            Frequency: dto.Frequency,
-            PreferredTime: dto.PreferredTime,
-            TargetCount: dto.TargetCount,
-            Unit: dto.Unit,
-            Color: dto.Color,
-            Icon: dto.Icon,
-            Motivation: dto.Motivation,
-            Category: dto.Category,
-            Triggers: dto.Triggers,
-            Rewards: dto.Rewards,
-            DifficultyLevel: dto.DifficultyLevel,
-            EnvironmentFactors: dto.EnvironmentFactors,
-            IsActive: dto.IsActive
-        );
-        await UpdateHabitAsync(dto.Id, updateDto, CancellationToken.None);
-    }
-
-    public async Task DeleteHabitAsync(Guid id)
-    {
-        await DeleteHabitAsync(id, CancellationToken.None);
+        var deleted = await _habitRepository.DeleteAsync(habitId);
+        if (deleted)
+        {
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+        }
+        return deleted;
     }
 }
