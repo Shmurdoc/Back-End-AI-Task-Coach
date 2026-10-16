@@ -20,15 +20,18 @@ public class AuthController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
     private readonly ITokenService _tokenService;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IUserRepository userRepository,
         ITokenService tokenService,
+        IUnitOfWork unitOfWork,
         ILogger<AuthController> logger)
     {
         _userRepository = userRepository;
         _tokenService = tokenService;
+        _unitOfWork = unitOfWork;
         _logger = logger;
     }
 
@@ -87,6 +90,11 @@ public class AuthController : ControllerBase
 
             var createdUser = await _userRepository.AddAsync(user);
 
+            // Persist now: repositories only stage changes, so without this commit the
+            // new user exists only in this request's change tracker and login would
+            // never find the account.
+            await _unitOfWork.SaveChangesAsync();
+
             // Generate token
             var token = _tokenService.GenerateToken(createdUser.Id, createdUser.Email, createdUser.Name);
 
@@ -97,6 +105,7 @@ public class AuthController : ControllerBase
                 Success = true,
                 Message = "Registration successful",
                 Token = token,
+                RefreshToken = _tokenService.GenerateRefreshToken(createdUser.Id, createdUser.Email, createdUser.Name),
                 User = new UserDto
                 {
                     Id = createdUser.Id,
@@ -183,6 +192,7 @@ public class AuthController : ControllerBase
                 Success = true,
                 Message = "Login successful",
                 Token = token,
+                RefreshToken = _tokenService.GenerateRefreshToken(user.Id, user.Email, user.Name),
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -225,7 +235,7 @@ public class AuthController : ControllerBase
                 });
             }
 
-            var newToken = await _tokenService.RefreshTokenAsync(request.RefreshToken);
+            var (newToken, newRefreshToken) = await _tokenService.RefreshTokenAsync(request.RefreshToken);
 
             _logger.LogInformation("Token refreshed successfully");
 
@@ -233,7 +243,8 @@ public class AuthController : ControllerBase
             {
                 Success = true,
                 Message = "Token refreshed successfully",
-                Token = newToken
+                Token = newToken,
+                RefreshToken = newRefreshToken
             });
         }
         catch (UnauthorizedAccessException ex)

@@ -5,7 +5,6 @@ using Prometheus;
 using Microsoft.AspNetCore.Mvc;
 using Application.Extensions;
 using Infrastructure.DependencyInjection;
-using Infrastructure.Services.Notification;
 using Application;
 using WebAPI.Middleware;
 using WebAPI.Extensions;
@@ -19,23 +18,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Register Infrastructure and Application DI
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
-builder.Services.AddHostedService<WebAPI.Background.SmartTimetableWorker>();
-builder.Services.AddHostedService<WebAPI.Background.CriticalModeWorker>();
-// Register background services for automated protocols
-builder.Services.AddHostedService<WebAPI.Background.ProcrastinationRecoveryWorker>();
 
-// Add authentication and authorization
+// Single source of truth for the signing key: configuration only (appsettings,
+// user-secrets, or environment). TokenService signs with the same Jwt:Key — a
+// hardcoded fallback here once produced a key mismatch that made every
+// authenticated request fail with a 500 in Development.
 var jwtKey = builder.Configuration.GetSection("Jwt")["Key"];
-if (string.IsNullOrEmpty(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    if (builder.Environment.IsDevelopment())
-    {
-        jwtKey = "development-secret-key-that-is-at-least-32-characters!";
-    }
-    else
-    {
-        throw new InvalidOperationException("JWT Key is not configured. Set Jwt:Key in configuration or environment variables.");
-    }
+    throw new InvalidOperationException(
+        "JWT Key is not configured. Set Jwt:Key in appsettings.Development.json, user-secrets, or environment variables.");
 }
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -64,9 +56,6 @@ builder.Services.AddControllers().ConfigureApiBehaviorOptions(options => {
     });
 });
 
-// Register AI/ML prediction service (OpenAI)
-Application.AI.AIPredictionServiceRegistration.AddAIPredictionService(builder.Services, builder.Configuration);
-
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
@@ -74,10 +63,6 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new() { Title = "AI Task Coach API", Version = "v1" });
     c.EnableAnnotations();
 });
-
-// Notification providers
-builder.Services.AddTransient<INotificationProvider, MailKitEmailProvider>();
-builder.Services.AddTransient<INotificationProvider, TwilioSmsProvider>();
 
 // Add metrics
 builder.Services.AddSingleton(Application.Extensions.ObservabilityExtensions.AppMeter);
@@ -127,7 +112,6 @@ app.MapHub<WebAPI.Hubs.NotificationHub>("/hubs/notifications");
 
 
 app.Run();
-public partial class Program { }
 
-// Must be at the very end for integration test accessibility
+// Exposes Program to WebApplicationFactory-based integration tests.
 public partial class Program { }

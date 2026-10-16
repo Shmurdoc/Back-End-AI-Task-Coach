@@ -1,12 +1,14 @@
 using Application.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebAPI.Filters;
 
 namespace WebAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = "RequireCoach")]
+[Authorize]
+[EnsureSelfUser]
 [Produces("application/json")]
 public class ReportController : ControllerBase
 {
@@ -14,9 +16,9 @@ public class ReportController : ControllerBase
     public ReportController(IAnalyticsService analytics) => _analytics = analytics;
 
     [HttpGet("user-report/{userId:guid}")]
-    public async Task<IActionResult> UserReport(Guid userId)
+    public async Task<IActionResult> UserReport(Guid userId, CancellationToken cancellationToken)
     {
-    await _analytics.GenerateUserReportAsync(userId);
-    return Ok(new { success = true });
+        var report = await _analytics.GenerateUserReportAsync(userId, cancellationToken);
+        return Ok(new { success = true, data = report });
     }
 }
