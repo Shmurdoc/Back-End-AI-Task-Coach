@@ -113,7 +113,7 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
 
         // Act
         var result = await _repository.AddAsync(goal);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -135,7 +135,7 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
 
         // Act
         var result = await _repository.UpdateAsync(goal);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -154,7 +154,7 @@ public class GoalRepositoryTests : RepositoryTestBase<GoalRepository>
 
         // Act
         await _repository.DeleteAsync(goal.Id);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
         // Assert
         var deletedGoal = await _repository.GetByIdAsync(goal.Id);

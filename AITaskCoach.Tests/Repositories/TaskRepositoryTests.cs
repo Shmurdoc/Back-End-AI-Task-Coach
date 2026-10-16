@@ -51,7 +51,7 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
 
         // Act
         var result = await _repository.AddAsync(task);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -74,7 +74,7 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
 
         // Act
         var result = await _repository.UpdateAsync(task);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -94,7 +94,7 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
         // Act
 
     var result = await _repository.DeleteAsync(task.Id);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
     // Assert
     result.Should().BeTrue();
@@ -112,7 +112,7 @@ public class TaskRepositoryTests : RepositoryTestBase<TaskRepository>
 
         // Act
     var result = await _repository.DeleteAsync(invalidId);
-        await _repository.SaveChangesAsync();
+        await SaveChangesAsync();
 
     // Assert
     result.Should().BeFalse();

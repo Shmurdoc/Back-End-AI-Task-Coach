@@ -10,7 +10,3 @@ global using Application.DTOs.HabitDtos;
 global using Application.DTOs.GoalDtos;
 global using Application.DTOs.OCRDtos;
 global using Application.IService;
-global using Application.CQRS.Commands.Tasks;
-global using Application.CQRS.Commands.Goals;
-global using Application.CQRS.Queries.Tasks;
-global using Application.CQRS.Queries.Goals;

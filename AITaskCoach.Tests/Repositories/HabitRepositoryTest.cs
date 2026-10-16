@@ -114,7 +114,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         var result = await _repository.AddAsync(habit);
-        await _repository.SaveChangesAsync(default);
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -122,7 +122,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         var savedHabit = await _repository.GetByIdAsync(result.Id);
         savedHabit.Should().NotBeNull();
-        savedHabit.Id.Should().Be(result.Id); // Verify the saved habit matches the added habit
+        savedHabit!.Id.Should().Be(result.Id); // Verify the saved habit matches the added habit
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         var result = await _repository.UpdateAsync(updatedHabit);
-        await _repository.SaveChangesAsync(default);
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -165,7 +165,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         await _repository.DeleteAsync(habit.Id);
-        await _repository.SaveChangesAsync(default);
+        await SaveChangesAsync();
 
         // Assert - repository soft-deletes by setting IsActive = false
         var deletedHabit = await _repository.GetByIdAsync(habit.Id);
@@ -188,7 +188,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         var result = await _repository.AddHabitEntryAsync(entry);
-        await _repository.SaveChangesAsync(default);
+        await SaveChangesAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -197,7 +197,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
         // Verify entry was saved to the database
         var savedEntry = await DbContext.HabitEntries.FindAsync(result.Id);
         savedEntry.Should().NotBeNull();
-        savedEntry.HabitId.Should().Be(habit.Id);
+        savedEntry!.HabitId.Should().Be(habit.Id);
     }
     
     [Fact]
@@ -247,7 +247,7 @@ public class HabitRepositoryTests : RepositoryTestBase<HabitRepository>
 
         // Act
         await _repository.UpdateStreakAsync(habit.Id);
-        await _repository.SaveChangesAsync(default);
+        await SaveChangesAsync();
 
         // Assert
         var updatedHabit = await _repository.GetByIdAsync(habit.Id);

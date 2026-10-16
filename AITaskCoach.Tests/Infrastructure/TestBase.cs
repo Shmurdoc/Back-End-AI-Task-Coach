@@ -105,6 +105,10 @@ public abstract class TestBase : IDisposable
         await DbContext.SaveChangesAsync();
     }
 
+    // Repositories no longer own persistence — IUnitOfWork does (services) /
+    // tests persist directly through the DbContext they created.
+    protected Task SaveChangesAsync() => DbContext.SaveChangesAsync();
+
     public void Dispose()
     {
         DbContext?.Dispose();

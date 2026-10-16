@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Configuration;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http.Json;
 using Xunit;
@@ -20,15 +19,9 @@ public class WebApplicationFactoryTests : IClassFixture<WebApplicationFactory<Pr
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
-            builder.ConfigureAppConfiguration((context, config) =>
-            {
-                config.AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["Jwt:Key"] = "test-super-secret-key-that-is-at-least-32-characters!",
-                    ["Jwt:Issuer"] = "TestIssuer",
-                    ["Jwt:Audience"] = "TestAudience"
-                });
-            });
+            // Jwt config intentionally comes from appsettings only: Program.cs captures
+            // Jwt:Key eagerly at startup, so in-memory test overrides would reach
+            // TokenService (per-request DI) but not the JWT validator.
             builder.ConfigureServices(services =>
             {
                 // Remove real database
