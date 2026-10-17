@@ -11,7 +11,7 @@ namespace Application.Services
 {
     /// <summary>
     /// Every gamification value is recomputed from real activity (tasks, goals,
-    /// habits) on each read. No points, badge or streak ledger exists — anything
+    /// habits) on each read. No points, badge or streak ledger exists. Anything
     /// not derivable from completion timestamps is not reported.
     /// </summary>
     public class GamificationService : IGamificationService

@@ -12,20 +12,20 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AITaskCoach.Tests.Integration;
 
-// Cycle 5 proofs: every endpoint that previously invented its own response
-// shape (result / summary / leaderboard / entries / avgEnergy / ...) now
-// returns the house envelope { success, data } with no stray root keys.
-public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
+// These tests check that every endpoint uses the same response shape,
+// { success, data }. Some endpoints used to return their own root keys
+// such as result, summary, leaderboard, entries or avgEnergy.
+public class ResponseEnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
-    public Cycle5EnvelopeTests(WebApplicationFactory<Program> factory)
+    public ResponseEnvelopeTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
-            // Same JWT constraint as AuthAndIdorTests: Program.cs captures
-            // Jwt:Key eagerly at startup, so no in-memory Jwt overrides here.
+            // Same JWT setup as AuthAndIdorTests: Program.cs reads Jwt:Key
+            // at startup before test config is applied.
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
@@ -34,7 +34,7 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("Cycle5EnvelopeDb");
+                    options.UseInMemoryDatabase("ResponseEnvelopeDb");
                 });
             });
         }).CreateClient();
@@ -51,9 +51,9 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            email = $"cycle5-{Guid.NewGuid():N}@test.local",
+            email = $"envelope-{Guid.NewGuid():N}@test.local",
             password = "Passw0rd!",
-            name = "Cycle 5 Tester"
+            name = "Envelope Tester"
         });
 
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -67,7 +67,7 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
         root.ValueKind.Should().Be(JsonValueKind.Object);
         root.EnumerateObject().Select(p => p.Name).Should().BeEquivalentTo(
             new[] { "success", "data" },
-            "Cycle 5 standardized every controller on { success, data } — no per-controller root keys");
+            "every controller returns { success, data }, not per-controller root keys");
         root.GetProperty("success").GetBoolean().Should().BeTrue();
     }
 
@@ -117,7 +117,7 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
             userId = auth.User!.Id,
             energyLevel = 6,
             moodLevel = 7,
-            note = "envelope proof"
+            note = "morning check-in"
         });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -135,7 +135,7 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
 
         var response = await _client.PostAsJsonAsync("/api/ai/suggest-task", new
         {
-            taskDescription = "Plan a day of envelope standardization work"
+            taskDescription = "Plan a day of documentation work"
         });
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
@@ -150,7 +150,7 @@ public class Cycle5EnvelopeTests : IClassFixture<WebApplicationFactory<Program>>
         UseToken(auth.Token);
 
         var create = await _client.PostAsJsonAsync("/api/goals", new CreateGoalDto(
-            auth.User!.Id, "Standardize the decompose envelope", null,
+            auth.User!.Id, "Plan the release", null,
             GoalCategory.Professional, 1, DateTime.UtcNow.AddDays(30)));
         create.StatusCode.Should().Be(HttpStatusCode.Created);
         var goalEnvelope = await create.Content.ReadFromJsonAsync<Envelope<GoalDto>>();

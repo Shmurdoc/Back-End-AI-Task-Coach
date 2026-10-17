@@ -2,6 +2,7 @@ using Application.DTOs.HabitDtos;
 using Application.IRepositories;
 using Application.IService;
 using Domain.Entities;
+using Domain.Enums;
 
 namespace Application.Services;
 
@@ -51,75 +52,48 @@ public class HabitService : IHabitService
         var createdHabit = await _habitRepository.AddAsync(habit);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        return new HabitDto(
-            createdHabit.Id,
-            createdHabit.Name,
-            createdHabit.Description,
-            createdHabit.Frequency,
-            createdHabit.PreferredTime,
-            createdHabit.TargetCount,
-            createdHabit.Unit,
-            createdHabit.Color,
-            createdHabit.Icon,
-            createdHabit.Motivation,
-            createdHabit.CurrentStreak,
-            createdHabit.BestStreak,
-            createdHabit.CompletionRate,
-            createdHabit.IsActive,
-            createdHabit.Category,
-            createdHabit.Triggers,
-            createdHabit.Rewards,
-            createdHabit.AIInsights,
-            createdHabit.DifficultyLevel,
-            createdHabit.EnvironmentFactors,
-            createdHabit.LastCompletedAt,
-            createdHabit.UserId,
-            createdHabit.CreatedAt,
-            createdHabit.UpdatedAt
-        );
+        return MapToDto(createdHabit);
     }
 
     public async Task<IEnumerable<HabitDto>> GetUserHabitsAsync(Guid userId)
     {
         if (userId != _userContext.GetCurrentUserId()) return Enumerable.Empty<HabitDto>();
         var habits = await _habitRepository.GetUserHabitsAsync(userId);
-        return habits.Select(habit => new HabitDto(
-            habit.Id,
-            habit.Name,
-            habit.Description,
-            habit.Frequency,
-            habit.PreferredTime,
-            habit.TargetCount,
-            habit.Unit,
-            habit.Color,
-            habit.Icon,
-            habit.Motivation,
-            habit.CurrentStreak,
-            habit.BestStreak,
-            habit.CompletionRate,
-            habit.IsActive,
-            habit.Category,
-            habit.Triggers,
-            habit.Rewards,
-            habit.AIInsights,
-            habit.DifficultyLevel,
-            habit.EnvironmentFactors,
-            habit.LastCompletedAt,
-            habit.UserId,
-            habit.CreatedAt,
-            habit.UpdatedAt
-        ));
+        return habits.Select(MapToDto);
     }
 
-    public async Task TrackHabitProgressAsync(Guid habitId, int value)
+    public async Task<(HabitDto Habit, bool Completed)> TrackHabitProgressAsync(Guid habitId, int value)
     {
+        if (value < 0)
+            throw new ArgumentOutOfRangeException(nameof(value), "Progress value must be non-negative.");
+
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) throw new InvalidOperationException("Habit not found.");
         if (habit.UserId != _userContext.GetCurrentUserId())
             throw new InvalidOperationException("Habit not found.");
+
+        var completed = value >= habit.TargetCount;
         habit.TrackProgress(value);
+
+        // Persist the attempt as a real entry so streak history and the
+        // habit analytics endpoints are backed by stored rows instead of
+        // reading from data that was never written.
+        await _habitRepository.AddHabitEntryAsync(new HabitEntry
+        {
+            Id = Guid.NewGuid(),
+            HabitId = habit.Id,
+            Date = DateTime.UtcNow.Date,
+            Value = value,
+            Status = completed
+                ? CompletionStatus.Completed
+                : (value > 0 ? CompletionStatus.PartiallyCompleted : CompletionStatus.Skipped),
+            Notes = string.Empty
+        });
+
         await _habitRepository.UpdateAsync(habit);
         await _unitOfWork.SaveChangesAsync();
+
+        return (MapToDto(habit), completed);
     }
 
     public async Task<HabitDto?> GetHabitByIdAsync(Guid habitId, CancellationToken cancellationToken)
@@ -127,32 +101,7 @@ public class HabitService : IHabitService
         var habit = await _habitRepository.GetByIdAsync(habitId);
         if (habit == null) return null;
         if (habit.UserId != _userContext.GetCurrentUserId()) return null;
-        return new HabitDto(
-            habit.Id,
-            habit.Name,
-            habit.Description,
-            habit.Frequency,
-            habit.PreferredTime,
-            habit.TargetCount,
-            habit.Unit,
-            habit.Color,
-            habit.Icon,
-            habit.Motivation,
-            habit.CurrentStreak,
-            habit.BestStreak,
-            habit.CompletionRate,
-            habit.IsActive,
-            habit.Category,
-            habit.Triggers,
-            habit.Rewards,
-            habit.AIInsights,
-            habit.DifficultyLevel,
-            habit.EnvironmentFactors,
-            habit.LastCompletedAt,
-            habit.UserId,
-            habit.CreatedAt,
-            habit.UpdatedAt
-        );
+        return MapToDto(habit);
     }
 
     public async Task<HabitDto> UpdateHabitAsync(Guid habitId, UpdateHabitDto dto, CancellationToken cancellationToken)
@@ -180,32 +129,7 @@ public class HabitService : IHabitService
 
         var updated = await _habitRepository.UpdateAsync(habit);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return new HabitDto(
-            updated.Id,
-            updated.Name,
-            updated.Description,
-            updated.Frequency,
-            updated.PreferredTime,
-            updated.TargetCount,
-            updated.Unit,
-            updated.Color,
-            updated.Icon,
-            updated.Motivation,
-            updated.CurrentStreak,
-            updated.BestStreak,
-            updated.CompletionRate,
-            updated.IsActive,
-            updated.Category,
-            updated.Triggers,
-            updated.Rewards,
-            updated.AIInsights,
-            updated.DifficultyLevel,
-            updated.EnvironmentFactors,
-            updated.LastCompletedAt,
-            updated.UserId,
-            updated.CreatedAt,
-            updated.UpdatedAt
-        );
+        return MapToDto(updated);
     }
 
     public async Task<bool> DeleteHabitAsync(Guid habitId, CancellationToken cancellationToken)
@@ -221,4 +145,30 @@ public class HabitService : IHabitService
         }
         return deleted;
     }
+
+    private static HabitDto MapToDto(Habit habit) => new(
+        habit.Id,
+        habit.Name,
+        habit.Description,
+        habit.Frequency,
+        habit.PreferredTime,
+        habit.TargetCount,
+        habit.Unit,
+        habit.Color,
+        habit.Icon,
+        habit.Motivation,
+        habit.CurrentStreak,
+        habit.BestStreak,
+        habit.CompletionRate,
+        habit.IsActive,
+        habit.Category,
+        habit.Triggers,
+        habit.Rewards,
+        habit.AIInsights,
+        habit.DifficultyLevel,
+        habit.EnvironmentFactors,
+        habit.LastCompletedAt,
+        habit.UserId,
+        habit.CreatedAt,
+        habit.UpdatedAt);
 }

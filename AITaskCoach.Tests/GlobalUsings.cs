@@ -8,5 +8,4 @@ global using Infrastructure.Persistence.Repositories;
 global using Application.DTOs.TaskDtos;
 global using Application.DTOs.HabitDtos;
 global using Application.DTOs.GoalDtos;
-global using Application.DTOs.OCRDtos;
 global using Application.IService;

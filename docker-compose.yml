@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   webapi:
     build:
@@ -11,21 +9,11 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=AITaskCoach;User Id=sa;Password=${SA_PASSWORD:-YourStrong@Passw0rd};TrustServerCertificate=true;
-      - ConnectionStrings__Redis=redis:6379
-      - Email__Host=smtp.gmail.com
-      - Email__Port=587
-      - Email__Username=${EMAIL_USERNAME}
-      - Email__Password=${EMAIL_PASSWORD}
-      - Email__FromAddress=noreply@aitaskcoach.com
-      - Email__FromName=AI Task Coach
-      - Twilio__AccountSid=${TWILIO_ACCOUNT_SID}
-      - Twilio__AuthToken=${TWILIO_AUTH_TOKEN}
-      - Twilio__FromNumber=${TWILIO_FROM_NUMBER}
       - OpenAI__ApiKey=${OPENAI_API_KEY}
+      - OpenAI__Endpoint=${OPENAI_ENDPOINT:-https://api.openai.com/v1/chat/completions}
+      - OpenAI__Model=${OPENAI_MODEL:-gpt-4o-mini}
     depends_on:
       - sqlserver
-      - redis
-      - prometheus
     networks:
       - aitaskcoach-network
 
@@ -39,15 +27,6 @@ services:
       - "1433:1433"
     volumes:
       - sqlserver_data:/var/opt/mssql
-    networks:
-      - aitaskcoach-network
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
     networks:
       - aitaskcoach-network
 
@@ -76,13 +55,13 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./Doc/grafana_dashboard_seed.json:/etc/grafana/provisioning/dashboards/dashboard.json
+      - ./Doc/grafana/provisioning:/etc/grafana/provisioning
+      - ./Doc/grafana/dashboards:/var/lib/grafana/dashboards
     networks:
       - aitaskcoach-network
 
 volumes:
   sqlserver_data:
-  redis_data:
   prometheus_data:
   grafana_data:
 

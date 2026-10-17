@@ -11,9 +11,9 @@ using Domain.Enums;
 
 namespace AITaskCoach.Tests.Integration;
 
-// Cycle 2 proofs: cross-user requests are rejected at the boundary (403/404,
-// never 200/500) and refresh tokens rotate through the new endpoint.
-// Uses its own in-memory database name so it never shares state with
+// These tests check that cross-user requests are rejected at the boundary
+// (403 or 404, never 200 or 500) and that refresh tokens rotate. The suite
+// uses its own in-memory database name so it does not share state with
 // WebApplicationFactoryTests ("TestDb").
 public class AuthAndIdorTests : IClassFixture<WebApplicationFactory<Program>>
 {

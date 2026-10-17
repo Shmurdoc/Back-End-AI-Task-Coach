@@ -97,6 +97,7 @@ public class AuthController : ControllerBase
 
             // Generate token
             var token = _tokenService.GenerateToken(createdUser.Id, createdUser.Email, createdUser.Name);
+            var refreshToken = await _tokenService.GenerateRefreshTokenAsync(createdUser.Id, createdUser.Email, createdUser.Name);
 
             _logger.LogInformation("User registered successfully: {UserId} - {Email}", createdUser.Id, createdUser.Email);
 
@@ -105,7 +106,7 @@ public class AuthController : ControllerBase
                 Success = true,
                 Message = "Registration successful",
                 Token = token,
-                RefreshToken = _tokenService.GenerateRefreshToken(createdUser.Id, createdUser.Email, createdUser.Name),
+                RefreshToken = refreshToken,
                 User = new UserDto
                 {
                     Id = createdUser.Id,
@@ -184,6 +185,7 @@ public class AuthController : ControllerBase
 
             // Generate token
             var token = _tokenService.GenerateToken(user.Id, user.Email, user.Name);
+            var refreshToken = await _tokenService.GenerateRefreshTokenAsync(user.Id, user.Email, user.Name);
 
             _logger.LogInformation("User logged in successfully: {UserId} - {Email}", user.Id, user.Email);
 
@@ -192,7 +194,7 @@ public class AuthController : ControllerBase
                 Success = true,
                 Message = "Login successful",
                 Token = token,
-                RefreshToken = _tokenService.GenerateRefreshToken(user.Id, user.Email, user.Name),
+                RefreshToken = refreshToken,
                 User = new UserDto
                 {
                     Id = user.Id,
@@ -265,5 +267,40 @@ public class AuthController : ControllerBase
                 Message = "An error occurred during token refresh. Please try again."
             });
         }
+    }
+
+    /// <summary>
+    /// Revoke a refresh token (log out of one session)
+    /// </summary>
+    /// <param name="request">The refresh token to revoke</param>
+    /// <returns>Confirmation that the session was revoked</returns>
+    [HttpPost("revoke")]
+    [Authorize]
+    public async Task<IActionResult> RevokeToken([FromBody] RefreshTokenRequest request)
+    {
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (!Guid.TryParse(userIdClaim, out var userId))
+        {
+            return Unauthorized(new AuthResponse
+            {
+                Success = false,
+                Message = "Invalid user identity"
+            });
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            await _tokenService.RevokeRefreshTokenAsync(request.RefreshToken, userId);
+        }
+
+        // Revocation is idempotent and never reveals whether the token existed,
+        // belonged to this user, or was already revoked.
+        _logger.LogInformation("Refresh token revocation requested by user: {UserId}", userId);
+
+        return Ok(new AuthResponse
+        {
+            Success = true,
+            Message = "Session revoked"
+        });
     }
 }

@@ -1,208 +1,248 @@
-# AI Task Coach - API Reference
+# API Reference
 
-Complete API documentation for the AI Task Coach system. For interactive testing and full schema details, visit the Swagger UI at `/swagger` when running the application locally.
+AI Task Coach exposes a JSON REST API built on ASP.NET Core 8, plus a SignalR hub for real-time
+notifications and standard health/metrics endpoints. This document covers all **45 endpoints
+across 13 controllers**, the response envelope conventions, authentication, and real-time events.
 
-## Base URL
-- **Local Development**: `http://localhost:5000`
-- **Production**: `https://your-domain.com` (TBD)
-
-## Authentication
-- 🔄 **JWT/OAuth2**: Authentication system planned for production deployment
-- 🔓 **Current State**: Endpoints accessible without authentication for development
-
-## Core API Endpoints
-
-### 📋 Tasks Management
-- `GET /api/tasks` – Retrieve all tasks for the authenticated user
-- `GET /api/tasks/{id}` – Get specific task details by ID
-- `POST /api/tasks` – Create a new task with AI suggestions
-- `PUT /api/tasks/{id}` – Update existing task
-- `DELETE /api/tasks/{id}` – Delete a task
-- `POST /api/tasks/{id}/complete` – Mark task as completed (triggers gamification)
-- `GET /api/tasks/analytics` – Get task completion analytics
-
-### 🎯 Goals Management
-- `GET /api/goals` – Get all user goals with progress tracking
-- `GET /api/goals/{id}` – Get specific goal details
-- `POST /api/goals` – Create a new goal
-- `PUT /api/goals/{id}` – Update goal progress and details
-- `DELETE /api/goals/{id}` – Delete a goal
-- `GET /api/goals/{id}/tasks` – Get all tasks associated with a goal
-
-### 🔄 Habits Tracking
-- `GET /api/habits` – Get all user habits with streak information
-- `GET /api/habits/{id}` – Get specific habit details
-- `POST /api/habits` – Create a new habit
-- `PUT /api/habits/{id}` – Update habit configuration
-- `DELETE /api/habits/{id}` – Delete a habit
-- `POST /api/habits/{id}/check-in` – Record habit completion for today
-
-### 👤 User Management
-- `GET /api/users/{id}` – Get user profile and preferences
-- `PUT /api/users/{id}` – Update user profile
-- `GET /api/users/{id}/analytics` – Get comprehensive user analytics
-- `GET /api/users/{id}/productivity-summary` – Get productivity insights
-
-### 📧 Notifications
-- `POST /api/notifications/email` – Send email notification
-- `POST /api/notifications/sms` – Send SMS notification
-- `GET /api/notifications/preferences/{userId}` – Get notification preferences
-- `PUT /api/notifications/preferences/{userId}` – Update notification settings
-
-## 🎮 Gamification Endpoints (New)
-
-### Points & Scoring
-- `GET /api/gamification/points/{userId}` – Get user's total points and recent activity
-- `POST /api/gamification/award-points` – Award points for completed actions
-- `GET /api/gamification/points/{userId}/history` – Get detailed points history
-
-### Badges & Achievements
-- `GET /api/gamification/badges/{userId}` – Get user's badge collection
-- `GET /api/gamification/achievements/{userId}` – Get user's achievements with progress
-- `POST /api/gamification/achievements/check/{userId}` – Trigger achievement check
-
-### Leaderboards
-- `GET /api/gamification/leaderboard` – Get global leaderboard (weekly)
-- `GET /api/gamification/leaderboard/all-time` – Get all-time rankings
-- `GET /api/gamification/leaderboard/{userId}/rank` – Get specific user's rank
-
-### Challenges
-- `GET /api/gamification/challenges/{userId}` – Get active challenges for user
-- `GET /api/gamification/challenges/available` – Get available challenges to join
-- `POST /api/gamification/challenges/{challengeId}/join` – Join a challenge
-- `POST /api/gamification/challenges/{challengeId}/complete` – Complete a challenge
-
-### Analytics & Insights
-- `GET /api/gamification/insights/{userId}` – Get AI-powered productivity insights
-- `GET /api/gamification/streak/{userId}` – Get current habit/task streaks
-- `GET /api/gamification/motivation/{userId}` – Get personalized motivational message
-
-## 📊 Analytics Endpoints
-
-### Productivity Analytics
-- `GET /api/analytics/productivity/{userId}` – Comprehensive productivity metrics
-- `GET /api/analytics/time-tracking/{userId}` – Time usage analysis
-- `GET /api/analytics/patterns/{userId}` – Behavioral pattern analysis
-- `GET /api/analytics/weekly-report/{userId}` – Weekly productivity report
-
-### Habit Analytics
-- `GET /api/habit-analytics/streaks/{userId}` – Detailed streak analysis
-- `GET /api/habit-analytics/completion-rates/{userId}` – Habit completion statistics
-- `GET /api/habit-analytics/trends/{userId}` – Long-term habit trends
-
-## 📅 Calendar Integration
-
-### Calendar Export
-- `GET /api/calendar/daily/{userId}` – Export daily schedule as ICS
-- `GET /api/calendar/weekly/{userId}` – Export weekly schedule as ICS
-- `POST /api/calendar/sync/{userId}` – Sync with external calendar services
-
-## 🔧 System & Health Endpoints
-
-### Health Checks
-- `GET /health` – Basic health check
-- `GET /health/ready` – Readiness probe for container orchestration
-- `GET /health/live` – Liveness probe for monitoring
-
-### Metrics
-- `GET /metrics` – Prometheus metrics endpoint
-- `GET /api/system/status` – System status and version information
-
-## Request/Response Examples
-
-### Create Task Example
-```json
-POST /api/tasks
-{
-  "title": "Complete project documentation",
-  "description": "Update all markdown files with latest changes",
-  "priority": 2,
-  "estimatedHours": 3.0,
-  "goalId": "123e4567-e89b-12d3-a456-426614174000",
-  "tags": ["documentation", "project"],
-  "energyLevel": 4
-}
-```
-
-### Response
-```json
-{
-  "id": "987e6543-e21b-12d3-a456-426614174111",
-  "title": "Complete project documentation",
-  "status": "Todo",
-  "createdAt": "2025-09-05T10:30:00Z",
-  "aiSuggestions": "Consider breaking this into smaller tasks for better focus",
-  "points": 0
-}
-```
-
-### Get User Badges Example
-```json
-GET /api/gamification/badges/{userId}
-
-Response:
-{
-  "badges": [
-    {
-      "id": "task-master",
-      "name": "Task Master",
-      "description": "Complete 100 tasks",
-      "rarity": "Epic",
-      "awardedAt": "2025-09-01T14:20:00Z",
-      "iconUrl": "/badges/task-master.png"
-    }
-  ],
-  "totalBadges": 12,
-  "rareCount": 3,
-  "epicCount": 1,
-  "legendaryCount": 0
-}
-```
-
-## Error Responses
-
-All endpoints return standardized error responses:
-
-```json
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "One or more validation errors occurred",
-    "details": [
-      {
-        "field": "title",
-        "message": "Title is required"
-      }
-    ],
-    "timestamp": "2025-09-05T10:30:00Z"
-  }
-}
-```
-
-## Rate Limiting
-- **Development**: No rate limiting
-- **Production**: 1000 requests per hour per user (planned)
-
-## WebSocket/SignalR Endpoints
-
-### Real-time Notifications
-- `/hubs/notifications` – Real-time notifications for task updates, achievements, etc.
-- `/hubs/gamification` – Live updates for points, badges, and leaderboard changes
-
-## Development Notes
-
-### Testing
-- Use Swagger UI at `/swagger` for interactive API testing
-- All endpoints support JSON request/response format
-- CORS enabled for local development (localhost:3000, localhost:5000)
-
-### Response Codes
-- `200` - Success
-- `201` - Created
-- `400` - Bad Request (validation errors)
-- `404` - Not Found
-- `500` - Internal Server Error
+- **Base URL:** `http://localhost:5129` (see `WebAPI/Properties/launchSettings.json`)
+- **Interactive docs:** Swagger UI at the root URL in Development (the JSON spec is at
+  `/swagger/v1/swagger.json`)
+- **Content type:** `application/json` everywhere except the calendar exports, which return `text/calendar`
+- **IDs:** every entity and user identifier is a GUID
+- **Dates:** all dates and timestamps are UTC
 
 ---
-*Last Updated: September 5, 2025*
-*API Version: 2.0 (Gamification Release)*
+
+## Conventions
+
+### Response envelope
+
+Every controller action except the auth endpoints and calendar exports returns an envelope:
+
+```json
+{ "success": true, "data": { } }
+```
+
+Errors use the same shape with an `error` string instead of `data`:
+
+```json
+{ "success": false, "error": "Task not found" }
+```
+
+### Status codes
+
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 400 | Validation failure or malformed input |
+| 401 | Missing, expired, or invalid access token |
+| 403 | Request references a different user than the caller |
+| 404 | Resource missing or not owned by the caller |
+| 409 | Conflict (e.g. email already in use) |
+| 500 | Unhandled server error (returns `{ "success": false, "error": "Internal server error" }`) |
+
+### Model validation
+
+Model binding/DataAnnotation failures are rewritten by `InvalidModelStateResponseFactory` to:
+
+```json
+{ "success": false, "errors": [ "Email is required." ] }
+```
+
+### Ownership enforcement
+
+Every `userId` route value and every `userId`-carrying request body must match the authenticated
+caller's id. `EnsureSelfUserAttribute` short-circuits with **403** otherwise:
+
+```json
+{ "success": false, "error": "You may only access your own user data." }
+```
+
+Entity-id routes (`{id:guid}`) are enforced separately by ownership checks inside the application
+services. Those surface as **404**, so foreign resources look the same as missing ones.
+
+---
+
+## Authentication - `/api/auth`
+
+| Method | Route | Auth | Body | Notes |
+|--------|-------|------|------|-------|
+| POST | `/api/auth/register` | Anonymous | `{ email, password, name }` | Creates the user and returns tokens |
+| POST | `/api/auth/login` | Anonymous | `{ email, password }` | Returns tokens |
+| POST | `/api/auth/refresh` | Anonymous | `{ refreshToken }` | Rotates the refresh token |
+| POST | `/api/auth/revoke` | Bearer | `{ refreshToken }` | Revokes the token; always returns 200 |
+
+Register/login/refresh return an `AuthResponse` directly (not the standard envelope):
+
+```json
+{
+  "success": true,
+  "message": "...",
+  "token": "<jwt access token>",
+  "refreshToken": "<opaque refresh token>",
+  "user": { "id": "...", "email": "...", "name": "...", "isActive": true, "createdAt": "..." }
+}
+```
+
+Token behavior:
+
+- **Access tokens** are JWTs valid for `Jwt:ExpiresInMinutes` (default 120 minutes).
+- **Refresh tokens** are opaque, stored SHA-256 hashed, and valid for `Jwt:RefreshExpiresInDays`
+  (default 7 days).
+- **Rotation:** every successful refresh revokes the used token and issues a new one.
+- **Reuse detection:** presenting an already-rotated or revoked refresh token revokes *all* of the
+  caller's active refresh tokens.
+- **Passwords** are hashed with PBKDF2 (SHA-256, 100,000 iterations, 16-byte salt).
+
+---
+
+## AI - `/api/ai`
+
+All AI endpoints degrade gracefully. When `OpenAI:ApiKey` is not configured, they return locally
+derived responses built from the caller's real data instead of calling an LLM.
+
+| Method | Route | Body / params | Notes |
+|--------|-------|---------------|-------|
+| POST | `/api/ai/predict-task` | `{ task: TaskDto, userId }` | Suggestion for approaching a task |
+| POST | `/api/ai/predict-goal` | `{ goal: GoalDto, userId }` | Suggestion for approaching a goal |
+| POST | `/api/ai/suggest-task` | `{ taskDescription }` | Suggestion from a free-text description |
+| GET | `/api/ai/analyze/{userId}` | — | Pattern analysis over the user's tasks, goals, habits, and energy entries |
+| POST | `/api/ai/weekly-plan/{userId}` | `{ context }` (parsed as a week start date) | Weekly plan grounded in the user's open work; 400 on unparseable date |
+| POST | `/api/ai/reflect/{userId}` | `{ text }` | Coaching response to reflection text |
+
+`data` is a string for the suggestion endpoints and a structured object for `analyze` and
+`weekly-plan`.
+
+---
+
+## Tasks - `/api/tasks`
+
+| Method | Route | Body | Notes |
+|--------|-------|------|-------|
+| GET | `/api/tasks/{id}` | — | Single task |
+| GET | `/api/tasks/user/{userId}` | — | All tasks for the user |
+| POST | `/api/tasks` | `CreateTaskDto` | Validated by `CreateTaskDtoValidator` |
+| PUT | `/api/tasks/{id}` | `UpdateTaskDto` | Validated by `UpdateTaskDtoValidator`; 404 when missing |
+| DELETE | `/api/tasks/{id}` | — | Returns `{ "success": true }` |
+
+When an update transitions the task to `Completed`, the server broadcasts a `TaskCompleted`
+SignalR event (see below). Task status values: `Todo`, `InProgress`, `Review`, `Completed`,
+`Cancelled`, `OnHold`, `Blocked`.
+
+## Goals - `/api/goals`
+
+| Method | Route | Body | Notes |
+|--------|-------|------|-------|
+| GET | `/api/goals/{id}` | — | Single goal |
+| GET | `/api/goals/user/{userId}` | — | All goals for the user |
+| POST | `/api/goals` | `GoalDto` | Validated by `CreateGoalDtoValidator` |
+| PUT | `/api/goals/{id}` | `GoalDto` | 404 when missing |
+| DELETE | `/api/goals/{id}` | — | Returns `{ "success": true }` |
+
+When an update transitions the goal to `Completed`, the server broadcasts a `GoalCompleted`
+event.
+
+## Habits - `/api/habits`
+
+| Method | Route | Body | Notes |
+|--------|-------|------|-------|
+| GET | `/api/habits/{id}` | — | Single habit |
+| GET | `/api/habits/user/{userId}` | — | All habits for the user |
+| POST | `/api/habits` | `HabitDto` | Create |
+| POST | `/api/habits/{id}/progress` | `HabitDto` | Records progress; broadcasts `HabitCompleted` |
+| PUT | `/api/habits/{id}` | `HabitDto` | 404 when missing |
+| DELETE | `/api/habits/{id}` | — | Returns `{ "success": true }` |
+
+## Goal Decomposition - `/api/goaldecomposition`
+
+| Method | Route | Body | Notes |
+|--------|-------|------|-------|
+| POST | `/api/goaldecomposition/decompose` | `{ goalId }` | Breaks a stored goal into milestone steps; 404 when missing or owned by another user |
+
+The goal title is read from the database, not from the request body. Decomposition is rule-based
+(category and optional target date), not an LLM call.
+
+---
+
+## Analytics & Reporting
+
+| Controller | Method | Route | Notes |
+|------------|--------|-------|-------|
+| Analytics | GET | `/api/analytics/productivity/{userId}` | Productivity summary across tasks, goals, habits |
+| HabitAnalytics | GET | `/api/habitanalytics/habit-summary/{userId}` | Per-habit streaks/completion statistics |
+| Report | GET | `/api/report/user-report/{userId}` | Combined user report |
+
+## Energy & Mood - `/api/energymood`
+
+| Method | Route | Body / params | Notes |
+|--------|-------|---------------|-------|
+| POST | `/api/energymood/record` | `{ userId, energyLevel (1–10), moodLevel (1–10), note?, timestamp? }` | Records one entry; `timestamp` defaults to now |
+| GET | `/api/energymood/entries/{userId}` | `?from&to` (optional) | Entries in range |
+| GET | `/api/energymood/averages/{userId}` | `?from&to` (optional) | `{ avgEnergy, avgMood }` |
+
+## Gamification - `/api/gamification`
+
+Points, levels, badges, streaks, and challenges are **derived on read** from the user's tasks,
+goals, and habits. There is no points ledger table. Scoring: 10 points per completed task,
+50 per completed goal, 25 per tracked habit; 1 level per 1,000 XP, where XP = points × 2.
+
+| Method | Route | Notes |
+|--------|-------|-------|
+| GET | `/api/gamification/summary/{userId}` | Points, level, XP, badges, streaks |
+| GET | `/api/gamification/points/{userId}` | `{ points, level, experience }` |
+| GET | `/api/gamification/badges/{userId}` | Earned/locked badges |
+| GET | `/api/gamification/achievements/{userId}` | Achievement checks |
+| GET | `/api/gamification/challenges/{userId}` | Active challenges |
+| GET | `/api/gamification/leaderboard` | Query: `type` (default `Points`), `limit` (default 10) |
+| GET | `/api/gamification/motivation/{userId}` | Motivational message |
+
+`type` values: `Points`, `TasksCompleted`, `CurrentStreak`, `BestStreak`, `HabitsCompleted`,
+`GoalsAchieved`, `Weekly`, `Monthly`, `AllTime`.
+
+## Calendar exports - `/api/calendar`
+
+| Method | Route | Notes |
+|--------|-------|-------|
+| GET | `/api/calendar/daily/{userId}/{date}` | Downloads `daily-{userId}-{yyyyMMdd}.ics` |
+| GET | `/api/calendar/weekly/{userId}/{startDate}` | Downloads `weekly-{userId}-{yyyyMMdd}.ics` |
+
+Both return `text/calendar` file downloads, not JSON.
+
+## Users - `/api/users`
+
+| Method | Route | Body | Notes |
+|--------|-------|------|-------|
+| GET | `/api/users/{id}` | — | 404 unless `id` is the caller |
+| PUT | `/api/users/{id}` | `UserDto` | 404 unless caller; 409 when the new email is taken |
+| POST | `/api/users/preferences/{userId}` | `UserPreferences` | Upserts preferences |
+
+---
+
+## Health & metrics
+
+| Endpoint | Auth | Notes |
+|----------|------|-------|
+| `/health/live` | Anonymous | Liveness: process is up; returns JSON |
+| `/health/ready` | Anonymous | Readiness: includes a database connectivity check |
+| `/metrics` | Anonymous | Prometheus exposition (HTTP metrics, background-job metrics, notification metrics) |
+
+Custom metrics include:
+
+- `notifications_sent_total{type}` and `notification_delivery_time_seconds{type}` for SignalR
+  broadcasts, labelled `task_completed`, `goal_completed`, `habit_completed`
+- `background_jobs_executed_total{job}`, `background_jobs_failed_total{job}`,
+  `background_job_duration_seconds{job}` for the refresh-token cleanup job
+
+## Real-time notifications (SignalR)
+
+- **Hub:** `/hubs/notifications`
+- **Auth:** JWT bearer; browsers may pass the token via an `access_token` query string (standard
+  SignalR pattern)
+- **Groups:** on connect the client can call `JoinUserGroup` / `LeaveUserGroup` to join its own
+  group (`user:{userId}` derived from the token). Clients cannot join another user's group.
+
+| Event | Payload | Fired when |
+|-------|---------|------------|
+| `TaskCompleted` | `{ id, title, status, completedAt }` | A task update sets status to `Completed` |
+| `GoalCompleted` | `{ id, title, status, completedAt }` | A goal update sets status to `Completed` |
+| `HabitCompleted` | `{ id, name, currentStreak, completionRate, lastCompletedAt }` | Habit progress is recorded |

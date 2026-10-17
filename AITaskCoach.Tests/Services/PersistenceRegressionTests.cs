@@ -68,12 +68,12 @@ public class PersistenceRegressionTests : IDisposable
     [Fact]
     public async Task CreateTask_PersistsRow_VisibleToFreshContext()
     {
-        var created = await _taskService.CreateTaskAsync(NewTaskDto("Ship Cycle 1"));
+        var created = await _taskService.CreateTaskAsync(NewTaskDto("Ship the beta"));
 
         await using var verify = NewContext();
         var stored = await verify.Tasks.FindAsync(created.Id);
         stored.Should().NotBeNull();
-        stored!.Title.Should().Be("Ship Cycle 1");
+        stored!.Title.Should().Be("Ship the beta");
     }
 
     [Fact]

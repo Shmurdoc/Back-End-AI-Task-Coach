@@ -15,26 +15,27 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AITaskCoach.Tests.Integration;
 
-// Cycle 3 proofs: the features that previously returned hardcoded zeros or
-// process-local dictionaries now serve real database-backed data, removed
-// endpoints are truly gone, and AI degrades gracefully with no API key.
-// Own in-memory database so it never shares state with the other
-// integration suites ("TestDb", "IdorTestDb").
-public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
+// These tests cover features that used to return hardcoded zeros or read
+// from process-local dictionaries. They now check that the API uses real
+// database rows, that removed routes are gone, and that AI calls degrade
+// gracefully when no API key is configured.
+// The suite uses its own in-memory database so it never shares state with
+// the other integration suites ("TestDb", "IdorTestDb").
+public class EndpointBehaviorTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
     private record Envelope<T>(bool Success, T Data);
 
-    public Cycle3RealityTests(WebApplicationFactory<Program> factory)
+    public EndpointBehaviorTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
-            // Same JWT constraint as AuthAndIdorTests: Program.cs captures
-            // Jwt:Key eagerly at startup, so no in-memory Jwt overrides here —
-            // the Development appsettings key serves signing and validation.
+            // Same JWT setup as AuthAndIdorTests: Program.cs reads Jwt:Key
+            // at startup before test config is applied, so this suite uses
+            // the Development appsettings key for signing and validation.
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
@@ -43,7 +44,7 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("Cycle3RealityDb");
+                    options.UseInMemoryDatabase("EndpointBehaviorDb");
                 });
             });
         });
@@ -61,9 +62,9 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            email = $"cycle3-{Guid.NewGuid():N}@test.local",
+            email = $"behavior-{Guid.NewGuid():N}@test.local",
             password = "Passw0rd!",
-            name = "Cycle 3 Tester"
+            name = "Behavior Tester"
         });
 
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -195,7 +196,7 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
             e.EnumerateObject().Any(p =>
                 string.Equals(p.Name, "userId", StringComparison.OrdinalIgnoreCase) &&
                 p.Value.GetGuid() == auth.User!.Id));
-        entry.ValueKind.Should().NotBe(JsonValueKind.Undefined, "the registered user must appear in the real leaderboard");
+        entry.ValueKind.Should().NotBe(JsonValueKind.Undefined, "the registered user must appear in the leaderboard");
         entry.EnumerateObject().Should().Contain(p =>
             string.Equals(p.Name, "rank", StringComparison.OrdinalIgnoreCase) && p.Value.GetInt32() >= 1);
     }
@@ -266,11 +267,11 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
-    // EnsureSelfUserAttribute only fires for a route param named "userId" or a body
-    // property named "UserId". UsersController uses "{id}" + UserDto.Id, so the filter
-    // correctly skips it — the action's own guard (UsersController.cs:40) is the real
-    // protection and it deliberately conceals other users as NotFound instead of leaking
-    // their existence via a 403. Assert that posture directly.
+    // EnsureSelfUserAttribute only checks a route parameter named "userId" or a
+    // body property named "UserId". UsersController uses "{id}" and UserDto.Id,
+    // so the filter skips those actions. The controller's own check
+    // (UsersController.cs:40) protects the route and returns NotFound so other
+    // users' accounts are not revealed. This test checks that behavior.
     [Fact]
     public async Task Users_Update_WhenTargetingAnotherUser_Returns404()
     {
@@ -291,7 +292,7 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
-    // ---------- removed endpoints are really gone ----------
+    // ---------- removed endpoints are gone ----------
 
     [Fact]
     public async Task RemovedGamificationWriteEndpoints_Return404()
@@ -312,7 +313,7 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
         var auth = await RegisterAsync();
         UseToken(auth.Token);
 
-        // These controllers were deleted in the Cycle 3 dead-code pass.
+        // These controllers were deleted when dead code was cleaned up.
         (await _client.GetAsync("/api/focus")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await _client.GetAsync("/api/location")).StatusCode.Should().Be(HttpStatusCode.NotFound);
         (await _client.GetAsync("/api/ocr")).StatusCode.Should().Be(HttpStatusCode.NotFound);
@@ -355,8 +356,8 @@ public class Cycle3RealityTests : IClassFixture<WebApplicationFactory<Program>>
             averages.GetProperty("avgMood").GetDouble().Should().Be(8);
         }
 
-        // The real proof of persistence: the row exists in the EF store, not
-        // only in a process-local dictionary the service once kept.
+        // Check the EF store directly, not only the API response. An earlier
+        // version kept these entries in a process-local dictionary.
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         db.EnergyMoodEntries.Count(e => e.UserId == userId).Should().Be(1);

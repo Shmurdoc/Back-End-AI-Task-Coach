@@ -3,7 +3,6 @@ using Microsoft.Extensions.Configuration;
 
 using Prometheus;
 using Microsoft.AspNetCore.Mvc;
-using Application.Extensions;
 using Infrastructure.DependencyInjection;
 using Application;
 using WebAPI.Middleware;
@@ -19,15 +18,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
 
-// Single source of truth for the signing key: configuration only (appsettings,
-// user-secrets, or environment). TokenService signs with the same Jwt:Key — a
-// hardcoded fallback here once produced a key mismatch that made every
-// authenticated request fail with a 500 in Development.
+// The signing key comes from configuration only (appsettings, user-secrets,
+// or environment). TokenService signs with the same Jwt:Key. A hardcoded
+// fallback here once caused a key mismatch, which made every authenticated
+// request fail with a 500 in Development.
 var jwtKey = builder.Configuration.GetSection("Jwt")["Key"];
-if (string.IsNullOrWhiteSpace(jwtKey))
+if (string.IsNullOrWhiteSpace(jwtKey) || jwtKey.Length < 32)
 {
     throw new InvalidOperationException(
-        "JWT Key is not configured. Set Jwt:Key in appsettings.Development.json, user-secrets, or environment variables.");
+        "JWT Key is not configured or shorter than 32 characters. Set Jwt:Key in appsettings.Development.json, user-secrets, or environment variables.");
+}
+
+// Treat placeholder values as a configuration error. Fail fast instead of
+// signing tokens with a value someone could find in the repository.
+string[] placeholderMarkers = { "<set via", "change_me", "changeme", "placeholder", "your-secret", "your-key" };
+if (placeholderMarkers.Any(marker => jwtKey.Contains(marker, StringComparison.OrdinalIgnoreCase)))
+{
+    throw new InvalidOperationException(
+        "JWT Key is still a placeholder value. Configure a real random secret before starting the API.");
 }
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
@@ -43,6 +51,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtSection["Audience"],
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+        // WebSocket/SSE transports cannot attach an Authorization header from
+        // the browser, so the SignalR client passes the JWT as an access_token
+        // query parameter. Accept it only for hub routes.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 builder.Services.AddAuthorization();
@@ -64,20 +88,21 @@ builder.Services.AddSwaggerGen(c =>
     c.EnableAnnotations();
 });
 
-// Add metrics
-builder.Services.AddSingleton(Application.Extensions.ObservabilityExtensions.AppMeter);
-
-// Add caching
-builder.Services.AddMemoryCache();
-builder.Services.AddStackExchangeRedisCache(options =>
-{
-    options.Configuration = builder.Configuration.GetConnectionString("Redis");
-});
-
 // Add SignalR
 builder.Services.AddSignalR();
+builder.Services.AddSingleton<WebAPI.Services.INotificationBroadcaster, WebAPI.Services.NotificationBroadcaster>();
+
+// Liveness (/health/live) and readiness (/health/ready) probes.
+builder.Services.AddApiHealthChecks();
+
+// Periodically removes expired and revoked refresh tokens.
+builder.Services.AddHostedService<WebAPI.BackgroundServices.RefreshTokenCleanupService>();
 
 var app = builder.Build();
+
+// Apply EF Core migrations at startup (automatically skipped for non-relational
+// providers such as the InMemory database used by integration tests).
+await app.MigrateDatabaseAsync();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -99,12 +124,12 @@ app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Add metrics middleware
-app.UseMiddleware<MetricsMiddleware>();
+// Prometheus-net records request rate/latency; the /metrics endpoint is mapped below.
 app.UseHttpMetrics();
 
 app.MapControllers();
-WebAPI.Extensions.WebApiObservabilityExtensions.MapMetrics(app);
+app.MapMetrics();
+WebAPI.Extensions.HealthCheckExtensions.MapApiHealthChecks(app);
 
 // Add SignalR hubs
 app.MapHub<WebAPI.Hubs.NotificationHub>("/hubs/notifications");

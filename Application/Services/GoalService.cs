@@ -3,8 +3,8 @@ using Application.IRepositories;
 using Application.IService;
 using Domain.Enums;
 using FluentValidation;
-// Application.IService.Goal (a namespace) shadows Domain.Entities.Goal here —
-// without this alias, 'Goal' resolves to the namespace and fails to compile.
+// Application.IService.Goal (a namespace) shadows Domain.Entities.Goal here.
+// Without this alias, 'Goal' resolves to the namespace and fails to compile.
 using GoalEntity = Domain.Entities.Goal;
 
 namespace Application.Services;

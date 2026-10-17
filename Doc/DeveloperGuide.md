@@ -1,42 +1,128 @@
 # Developer Guide
 
-Welcome! Here’s how I work on and maintain this project. If you’re new, this should help you get up to speed fast.
+How to run, test, and extend AI Task Coach.
 
-## How I Work (SDLC)
-- I use an Agile approach: short iterations, regular reviews, and CI/CD.
-- I move through requirements, design, implementation, testing, deployment, and maintenance in cycles.
+## Prerequisites
 
-## Getting Started
-- Clone the repo and check out the `README.md` for a quick overview.
-- Restore dependencies and build the solution.
-- Take a look at `Architecture.md` to understand the structure.
-- Run the tests and check the coverage.
+- .NET 8 SDK
+- SQL Server (LocalDB/Express is fine), or Docker for the full stack
+- Optional: `dotnet-ef` tools (`dotnet tool install --global dotnet-ef`) for manual migrations
 
-## My Coding Standards
-- I use C# 10+ and .NET 8 best practices.
-- Clean architecture and SOLID principles are a must.
-- MediatR is used for CQRS and handler separation.
-- I write XML comments for public APIs.
-- Everything is wired up with dependency injection.
+## Getting started
+
+```powershell
+# 1. Restore and build
+dotnet restore
+dotnet build
+
+# 2. Configure the connection string
+#    Edit WebAPI/appsettings.json → ConnectionStrings:DefaultConnection
+#    (or use user secrets: dotnet user-secrets set "ConnectionStrings:DefaultConnection" "..." --project WebAPI)
+
+# 3. Create/update the database (4 migrations)
+dotnet ef database update --project Infrastructure --startup-project WebAPI
+
+# 4. Run
+dotnet run --project WebAPI
+```
+
+The API listens on `http://localhost:5129`. In Development the Swagger UI is at the root URL
+because `RoutePrefix` is empty. The JSON spec is at `/swagger/v1/swagger.json`. On startup the
+app also applies pending migrations automatically (unless running under the non-relational test
+provider), so step 3 is often unnecessary in local dev.
+
+Create your first user with `POST /api/auth/register` from Swagger, then click **Authorize** and
+paste the returned `token`.
+
+## Configuration
+
+| Key | Notes |
+|-----|-------|
+| `ConnectionStrings:DefaultConnection` | SQL Server connection string |
+| `Jwt:Key` | Must be ≥ 32 chars and not a placeholder, or startup fails. Dev uses a fixed local key in `appsettings.Development.json` |
+| `Jwt:Issuer` / `Jwt:Audience` | Token issuer/audience |
+| `Jwt:ExpiresInMinutes` | Access token lifetime (default 120) |
+| `Jwt:RefreshExpiresInDays` | Refresh token lifetime (default 7) |
+| `OpenAI:ApiKey` | Optional. Empty means all AI endpoints use local fallbacks |
+| `OpenAI:Endpoint` | Default `https://api.openai.com/v1/chat/completions` (any OpenAI-compatible endpoint works) |
+| `OpenAI:Model` | Default `gpt-4o-mini` |
+
+`appsettings.Production.json` intentionally ships `<set via environment variable or secret
+manager>` placeholders. The startup guard rejects them, so production must supply real values
+(environment variables, Key Vault, etc.).
 
 ## Testing
-- I write unit and integration tests for every new feature.
-- I use xUnit, Moq, and AutoFixture.
-- Tests should pass locally and in CI before merging.
-- I aim for high coverage and meaningful assertions.
 
-## CI/CD & DevOps
-- All code changes go through GitHub Actions.
-- Build, test, security scan, and deploy are all automated.
-- Docker images are built and pushed for every release.
+```powershell
+dotnet test
+```
 
-## Best Practices I Follow
-- Never commit secrets or sensitive data.
-- Use environment variables for all config.
-- Document endpoints and config options.
-- Keep docs up to date as the project evolves.
+- **131 tests**, all green, zero build warnings.
+- Unit tests construct services/controllers directly with real in-memory repositories and mocked
+  `IUserContext`.
+- Integration tests use `WebApplicationFactory` (`AITaskCoach.Tests/Integration/`) and cover
+  auth enforcement (anonymous → 401), health endpoints, `/metrics`, and endpoint behavior.
 
-## Where to Find More
-- `README.md` for setup and usage
-- `ProductionReadiness.md` for deployment
-- `Architecture.md` for system design
+CI runs the same suite on every push/PR to `main`, `master`, or `develop`, with coverage uploaded
+as an artifact and to Codecov.
+
+## Conventions
+
+**Controllers**
+
+- Attributes: `[ApiController]`, `[Route("api/[controller]")]`, `[Authorize]`,
+  `[EnsureSelfUser]` (unless the controller has no user-scoped data), `[Produces("application/json")]`
+- Thin actions: validate/bind → call one service method → wrap the result
+- Success envelope: `Ok(new { success = true, data = ... })`; errors:
+  `{ success = false, error = "..." }` with the appropriate status code
+- Deletes return `{ success = true }` with no body data
+- `Update` actions translate `InvalidOperationException` from services into 404
+
+**Domain rules**
+
+- All ids are GUIDs; all timestamps UTC
+- Ownership checks live in application services (return `null`/throw → controller maps to 404)
+- `EnsureSelfUserAttribute` only covers the `userId` route value and `UserId` properties on body
+  arguments. Entity id routes are the service's responsibility.
+- Async all the way, `CancellationToken` threaded through
+
+**Validation**
+
+- DataAnnotations on request records (`[Required]`, `[Range]`, …)
+- FluentValidation validators for the richer DTOs (create/update task, create goal, login),
+  invoked explicitly with `ValidateAndThrowAsync`
+
+**Notifications**
+
+- Completion flows call `INotificationBroadcaster` (`TaskCompletedAsync`, `GoalCompletedAsync`,
+  `HabitCompletedAsync`). Controllers never use `IHubContext` directly.
+
+## Adding a feature (typical path)
+
+1. **Domain**: add/adjust the entity in `Domain/Entities` (GUID `Id`, UTC timestamps).
+2. **Infrastructure**: add the `DbSet`, configure the model, create a migration:
+   `dotnet ef migrations add <Name> --project Infrastructure --startup-project WebAPI`.
+3. **Application**: repository interface + implementation, service interface + implementation,
+   DTOs, optional validator.
+4. **WebAPI**: register services in `Program.cs` if new, add the controller following the
+   conventions above.
+5. **Tests**: add unit tests next to the existing patterns; integration behavior (auth, status
+   codes) in `AITaskCoach.Tests/Integration`.
+6. Run `dotnet build` (must stay warning-free) and `dotnet test` (must stay green).
+
+## Docker
+
+```powershell
+$env:SA_PASSWORD = "<strong-password>"
+$env:OPENAI_API_KEY = "<optional>"
+docker compose up --build
+```
+
+This starts the API (8080), SQL Server 2022 (1433), Prometheus (9090), and Grafana (3000) with
+dashboards provisioned from `Doc/grafana/provisioning`.
+
+## Branches and PRs
+
+- Default branch: **`master`** (CI also accepts `main`/`develop` pushes)
+- PRs target `master`; CI must pass (build, 131 tests, Trivy scan)
+- Keep the solution building with zero warnings

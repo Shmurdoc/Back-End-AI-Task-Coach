@@ -2,7 +2,7 @@ namespace Application.DTOs;
 
 /// <summary>
 /// Point-in-time productivity report derived entirely from stored goals,
-/// tasks, and habits — no estimated or synthesized figures.
+/// tasks, and habits. No estimated or synthesized figures.
 /// </summary>
 public class UserReportDto
 {

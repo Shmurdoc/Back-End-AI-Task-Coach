@@ -3,6 +3,7 @@ using Application.IService;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.Filters;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -14,7 +15,12 @@ namespace WebAPI.Controllers;
 public class HabitsController : ControllerBase
 {
     private readonly IHabitService _habits;
-    public HabitsController(IHabitService habits) => _habits = habits;
+    private readonly INotificationBroadcaster _broadcaster;
+    public HabitsController(IHabitService habits, INotificationBroadcaster broadcaster)
+    {
+        _habits = habits;
+        _broadcaster = broadcaster;
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
@@ -38,6 +44,25 @@ public class HabitsController : ControllerBase
         return CreatedAtAction(nameof(Get), new { id = created.Id }, new { success = true, data = created });
     }
 
+    [HttpPost("{id:guid}/progress")]
+    public async Task<IActionResult> TrackProgress(Guid id, [FromBody] TrackHabitProgressDto dto, CancellationToken cancellationToken)
+    {
+        if (dto.Value < 0)
+            return BadRequest(new { success = false, error = "Progress value must be non-negative." });
+
+        try
+        {
+            var (habit, completed) = await _habits.TrackHabitProgressAsync(id, dto.Value);
+            if (completed)
+                await _broadcaster.HabitCompletedAsync(habit.UserId, habit, cancellationToken);
+            return Ok(new { success = true, data = habit });
+        }
+        catch (InvalidOperationException)
+        {
+            return NotFound(new { success = false, error = "Not found" });
+        }
+    }
+
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateHabitDto dto, CancellationToken cancellationToken)
     {
@@ -59,11 +84,5 @@ public class HabitsController : ControllerBase
         if (!deleted)
             return NotFound(new { success = false, error = "Not found" });
         return Ok(new { success = true });
-    }
-
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return Ok(new { success = true, message = "Habits API root." });
     }
 }

@@ -146,13 +146,23 @@ public class Habit : BaseEntity
     /// </summary>
     public virtual ICollection<HabitAnalytics> Analytics { get; set; } = new List<HabitAnalytics>();
 
+    /// <summary>
+    /// Records a progress attempt against the habit's target: updates the
+    /// current streak, best streak, completion rate, and last-completed
+    /// timestamp.
+    /// </summary>
     public void TrackProgress(int value)
     {
-        // Example logic: update streak and completion rate
         if (value >= TargetCount)
+        {
             CurrentStreak += 1;
+            BestStreak = Math.Max(BestStreak, CurrentStreak);
+            LastCompletedAt = DateTime.UtcNow;
+        }
         else
+        {
             CurrentStreak = 0;
+        }
 
         CompletionRate = Math.Min(100, (double)value / TargetCount * 100);
         UpdatedAt = DateTime.UtcNow;

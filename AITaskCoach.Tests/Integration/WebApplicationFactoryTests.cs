@@ -63,15 +63,15 @@ public class WebApplicationFactoryTests : IClassFixture<WebApplicationFactory<Pr
     }
 
     [Theory]
-    [InlineData("/api/habits")]
-    [InlineData("/api/tasks")]
-    [InlineData("/api/goals")]
+    [InlineData("/api/habits/user/11111111-1111-1111-1111-111111111111")]
+    [InlineData("/api/tasks/user/11111111-1111-1111-1111-111111111111")]
+    [InlineData("/api/goals/user/11111111-1111-1111-1111-111111111111")]
     public async Task ApiEndpoints_ShouldReturn401_WhenNotAuthenticated(string endpoint)
     {
         // Act
         var response = await _client.GetAsync(endpoint);
 
         // Assert
-        response.StatusCode.Should().BeOneOf(System.Net.HttpStatusCode.Unauthorized, System.Net.HttpStatusCode.OK);
+        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
     }
 }

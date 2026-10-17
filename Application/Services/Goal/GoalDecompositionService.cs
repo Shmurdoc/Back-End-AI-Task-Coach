@@ -6,11 +6,10 @@ using Domain.Enums;
 namespace Application.Services.Goal;
 
 /// <summary>
-/// Produces a real, category-aware decomposition for a stored goal. Loads the
-/// goal from the database (caller must own it — anything else is treated as
-/// not found), derives milestone steps from the goal's category and target
-/// date, and labels the result honestly as heuristic so clients know an
-/// OpenAI key would enable model-generated steps instead.
+/// Builds a category-aware decomposition for a stored goal. The goal is
+/// loaded from the database and the caller must own it; anything else is
+/// treated as not found. The steps come from simple rules based on the
+/// category and target date, and the response says the result is heuristic.
 /// </summary>
 public class GoalDecompositionService : IGoalDecompositionService
 {
@@ -41,7 +40,7 @@ public class GoalDecompositionService : IGoalDecompositionService
 
         var explanation = "Heuristic decomposition based on the goal's category"
             + (goal.TargetDate.HasValue ? " and target date" : string.Empty)
-            + ". Configure an OpenAI API key to enable model-generated steps.";
+            + ".";
 
         return new GoalDecompositionDto(goal.Id, goal.Title, subtasks, explanation);
     }

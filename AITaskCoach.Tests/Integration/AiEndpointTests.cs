@@ -12,25 +12,24 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace AITaskCoach.Tests.Integration;
 
-// Cycle 4 proofs: the AI layer coaches on the caller's real data (not a bare
-// user id), serves deterministic data-derived insights offline, the duplicate
-// suggestions endpoint is gone, and goal decomposition loads the goal from the
-// database with ownership enforcement and category-aware steps.
-// No OpenAI key is configured in tests, so every AI assertion pins the
-// local-fallback behavior that must exist for the API to stay useful offline.
-public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>>
+// These tests cover the AI endpoints. With no OpenAI key configured, they
+// check that responses are built from the caller's real data, that the
+// duplicate suggestions route is gone, and that goal decomposition loads
+// the goal from the database and enforces ownership. Each AI assertion
+// checks the local fallback that keeps the API useful offline.
+public class AiEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
 
     private record Envelope<T>(bool Success, T Data);
 
-    public Cycle4AiRealityTests(WebApplicationFactory<Program> factory)
+    public AiEndpointTests(WebApplicationFactory<Program> factory)
     {
         _client = factory.WithWebHostBuilder(builder =>
         {
             builder.UseEnvironment("Development");
-            // Same JWT constraint as AuthAndIdorTests: Program.cs captures
-            // Jwt:Key eagerly at startup, so no in-memory Jwt overrides here.
+            // Same JWT setup as AuthAndIdorTests: Program.cs reads Jwt:Key
+            // at startup before test config is applied.
             builder.ConfigureServices(services =>
             {
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
@@ -39,7 +38,7 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("Cycle4AiDb");
+                    options.UseInMemoryDatabase("AiEndpointDb");
                 });
             });
         }).CreateClient();
@@ -56,9 +55,9 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
     {
         var response = await _client.PostAsJsonAsync("/api/auth/register", new
         {
-            email = $"cycle4-{Guid.NewGuid():N}@test.local",
+            email = $"ai-{Guid.NewGuid():N}@test.local",
             password = "Passw0rd!",
-            name = "Cycle 4 Tester"
+            name = "AI Tester"
         });
 
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -90,7 +89,7 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
     {
         var auth = await RegisterAsync();
         var userId = auth.User!.Id;
-        await CreateGoalAsync(auth.Token, userId, "Ship the Cycle 4 work", GoalCategory.Professional);
+        await CreateGoalAsync(auth.Token, userId, "Ship the beta", GoalCategory.Professional);
 
         UseToken(auth.Token);
         var response = await _client.GetAsync($"/api/ai/analyze/{userId}");
@@ -99,7 +98,7 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
         var envelope = await response.Content.ReadFromJsonAsync<Envelope<string>>();
         envelope!.Data.Should().StartWith("Local insights (offline mode");
         envelope.Data.Should().Contain("Open tasks:");
-        envelope.Data.Should().Contain("Ship the Cycle 4 work",
+        envelope.Data.Should().Contain("Ship the beta",
             "the offline insight must be built from the user's actual goals, not a canned string");
     }
 
@@ -128,7 +127,7 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
     }
 
     [Fact]
-    public async Task Analyze_ReturnsBadRequest_ForUnparsableWeekContext_OnWeeklyPlan()
+    public async Task WeeklyPlan_ReturnsBadRequest_ForUnparsableContext()
     {
         var auth = await RegisterAsync();
         UseToken(auth.Token);
@@ -179,7 +178,7 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
             "a goal with a target date gets a dated mid-point review step");
 
         result.GetProperty("aiExplanation").GetString()
-            .Should().Contain("Heuristic decomposition", "the response must be honest about how it was produced");
+            .Should().Contain("Heuristic decomposition", "the response must say the steps came from a heuristic");
     }
 
     [Fact]
@@ -229,6 +228,6 @@ public class Cycle4AiRealityTests : IClassFixture<WebApplicationFactory<Program>
         var response = await _client.PostAsJsonAsync("/api/goaldecomposition/decompose", new { goalId = bobsGoal });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound,
-            "foreign goals must be concealed, not decomposed for the caller");
+            "foreign goals must be hidden, not decomposed for the caller");
     }
 }

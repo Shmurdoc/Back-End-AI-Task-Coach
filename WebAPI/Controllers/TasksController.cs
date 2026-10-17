@@ -1,8 +1,10 @@
 using Application.DTOs.TaskDtos;
 using Application.IService;
+using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.Filters;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -14,7 +16,12 @@ namespace WebAPI.Controllers;
 public class TasksController : ControllerBase
 {
     private readonly ITaskService _taskService;
-    public TasksController(ITaskService taskService) { _taskService = taskService; }
+    private readonly INotificationBroadcaster _broadcaster;
+    public TasksController(ITaskService taskService, INotificationBroadcaster broadcaster)
+    {
+        _taskService = taskService;
+        _broadcaster = broadcaster;
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
@@ -41,6 +48,8 @@ public class TasksController : ControllerBase
         try
         {
             var updated = await _taskService.UpdateTaskAsync(id, dto, cancellationToken);
+            if (dto.Status == TaskItemStatus.Completed)
+                await _broadcaster.TaskCompletedAsync(updated.UserId, updated, cancellationToken);
             return Ok(new { success = true, data = updated });
         }
         catch (InvalidOperationException)
@@ -55,11 +64,5 @@ public class TasksController : ControllerBase
         var deleted = await _taskService.DeleteTaskAsync(id, cancellationToken);
         if (!deleted) return NotFound(new { success = false, error = "Task not found" });
         return Ok(new { success = true });
-    }
-
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return Ok(new { success = true, message = "Tasks API root." });
     }
 }

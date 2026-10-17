@@ -1,34 +1,39 @@
-# SDLC Status: Back-End AI Task Coach
+# SDLC Status
 
-Here’s where I am in the software development life cycle for this project. I update this as I go, so you always know what’s done and what’s next.
+Snapshot of the software development lifecycle for AI Task Coach. Last updated: **2026-10-18**.
 
-## Current Phase
-- **Testing & Pre-Production**
+## Timeline
 
-## What’s Done
-- Requirements and design docs are finished
-- Core architecture and infrastructure are in place
-- Habit tracking, notifications, and observability are working
-- CI/CD, Docker, and deployment pipeline are set up
-- Security and config best practices are followed
-- Most documentation and onboarding guides are ready
+| Phase | Period | Status |
+|-------|--------|--------|
+| Concept & architecture | Aug 2025 | Done |
+| Initial implementation (auth, core CRUD, AI, analytics, gamification) | Aug–Sep 2025 | Done |
+| Dormancy | Sep 2025 – Oct 2026 | — |
+| Energy/mood feature | Oct 2026 | Done |
+| Cleanup and fixes (this effort) | Oct 2026 | Done |
+| Production deployment | — | Not started (build/CI ready; no CD target) |
 
-## What I’m Working On
-- Fixing the last few test failures
-- Finalizing task/goal management logic
-- Expanding test coverage for edge cases
+## Current state (2026-10-18)
 
-## What’s Next
-- Add authentication/authorization (JWT/OAuth2)
-- Integrate AI/ML for smarter coaching
-- Add production-grade secret management
-- Prep for full production deployment
+- **Build:** warning-free
+- **Tests:** 131/131 passing (unit + integration)
+- **API surface:** 45 endpoints across 13 controllers, all documented in `API_Reference.md`
+- **Database:** SQL Server, 9 tables, 4 EF Core migrations
+- **Auth:** JWT access tokens, refreshing with rotation + reuse detection, revoke endpoint
+- **Real-time:** SignalR hub with completion events for tasks, goals, habits
+- **Observability:** health checks, Prometheus metrics, Grafana provisioning
+- **CI:** automated build, tests with coverage, Trivy scan, GHCR image push
+- **Docs:** rewritten to match the system. An earlier "v2.0" status overstated what existed; I corrected that content instead of keeping it.
 
-## How I Work
-- I use Agile: short sprints, regular reviews
-- CI/CD for fast feedback and deployment
-- Docs and code reviews are part of every phase
+## Working practices
 
----
+- Clean Architecture boundaries are enforced by project references
+- All user data is owner-scoped and enforced in two places (`EnsureSelfUser` filter and service
+  checks)
+- No secrets in the repository. Production config fails on purpose without real secrets.
+- I checked these docs against the code: the build passes and the tests listed here pass.
 
-**I’ll keep this updated as the project moves through the SDLC.**
+## Known gaps
+
+See `ProductionReadiness.md` (gap table + prioritized next steps) and `Issues.md` (known scope
+cuts). The top three are rate limiting, pagination, and a real deployment pipeline.

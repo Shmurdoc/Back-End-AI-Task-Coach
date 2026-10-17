@@ -1,8 +1,11 @@
 using Application.DTOs.GoalDtos;
+using Application.IRepositories;
 using Application.IService;
+using Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebAPI.Filters;
+using WebAPI.Services;
 
 namespace WebAPI.Controllers;
 
@@ -14,7 +17,14 @@ namespace WebAPI.Controllers;
 public class GoalsController : ControllerBase
 {
     private readonly IGoalService _goalService;
-    public GoalsController(IGoalService goalService) => _goalService = goalService;
+    private readonly INotificationBroadcaster _broadcaster;
+    private readonly IUserContext _userContext;
+    public GoalsController(IGoalService goalService, INotificationBroadcaster broadcaster, IUserContext userContext)
+    {
+        _goalService = goalService;
+        _broadcaster = broadcaster;
+        _userContext = userContext;
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id, CancellationToken cancellationToken)
@@ -41,6 +51,8 @@ public class GoalsController : ControllerBase
         try
         {
             var updated = await _goalService.UpdateGoalAsync(id, dto, cancellationToken);
+            if (dto.Status == GoalStatus.Completed)
+                await _broadcaster.GoalCompletedAsync(_userContext.GetCurrentUserId(), updated, cancellationToken);
             return Ok(new { success = true, data = updated });
         }
         catch (InvalidOperationException)
@@ -55,11 +67,5 @@ public class GoalsController : ControllerBase
         var deleted = await _goalService.DeleteGoalAsync(id, cancellationToken);
         if (!deleted) return NotFound(new { success = false, error = "Goal not found" });
         return Ok(new { success = true });
-    }
-
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return Ok(new { success = true, message = "Goals API root." });
     }
 }

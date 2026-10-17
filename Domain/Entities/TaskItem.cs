@@ -40,54 +40,6 @@ public class TaskItem : BaseEntity
     public Guid? GoalId { get; set; }
     public virtual User User { get; set; } = null!;
     public virtual Goal? Goal { get; set; }
-    public virtual ICollection<TimeEntry> TimeEntries { get; set; } = new List<TimeEntry>();
-    public virtual ICollection<TaskStatusHistory> StatusHistory { get; set; } = new List<TaskStatusHistory>();
-}
-
-/// <summary>
-/// Time tracking entries for detailed productivity analysis
-/// </summary>
-public class TimeEntry
-{
-    public Guid Id { get; set; }
-
-    public DateTime StartTime { get; set; }
-
-    public DateTime? EndTime { get; set; }
-
-    [Range(0, 24)]
-    public double HoursWorked { get; set; }
-
-    [StringLength(500)]
-    public string? Notes { get; set; }
-
-    [Range(1, 5)]
-    public int ProductivityRating { get; set; } = 3;
-
-    // Foreign key
-    public Guid TaskId { get; set; }
-    public virtual TaskItem Task { get; set; } = null!;
-}
-
-/// <summary>
-/// Task status change history for AI pattern recognition
-/// </summary>
-public class TaskStatusHistory
-{
-    public Guid Id { get; set; }
-
-    public TaskItemStatus FromStatus { get; set; }
-
-    public TaskItemStatus ToStatus { get; set; }
-
-    [StringLength(500)]
-    public string? Reason { get; set; }
-
-    public DateTime ChangedAt { get; set; }
-
-    // Foreign key
-    public Guid TaskId { get; set; }
-    public virtual TaskItem Task { get; set; } = null!;
 }
 
 

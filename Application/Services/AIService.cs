@@ -18,7 +18,7 @@ namespace Application.Services;
 /// </summary>
 public class AIService : IAIService
 {
-    private const string Model = "gpt-4o-mini";
+    private const string DefaultApiBaseAddress = "https://api.openai.com/v1/";
 
     private const string TaskSuggestionSystemPrompt =
         "You are a productivity coach AI. Analyze the given task and provide helpful suggestions for breaking it down, prioritizing it, or optimizing how to approach it. Keep responses concise and actionable.";
@@ -36,6 +36,8 @@ public class AIService : IAIService
     private readonly IHabitRepository _habitRepository;
     private readonly IEnergyMoodRepository _energyMoodRepository;
     private readonly bool _isConfigured;
+    private readonly string _model;
+    private readonly string _chatEndpoint;
 
     public AIService(
         HttpClient httpClient,
@@ -59,7 +61,18 @@ public class AIService : IAIService
         // enables HTTP calls.
         _isConfigured = !string.IsNullOrWhiteSpace(apiKey);
 
-        _httpClient.BaseAddress = new Uri("https://api.openai.com/v1/");
+        // Configuration is the source of truth for endpoint and model so
+        // deployments can point at a gateway or switch models without a
+        // rebuild; the constants below are only fallbacks.
+        var endpoint = configuration["OpenAI:Endpoint"];
+        _chatEndpoint = string.IsNullOrWhiteSpace(endpoint)
+            ? $"{DefaultApiBaseAddress}chat/completions"
+            : endpoint;
+
+        var model = configuration["OpenAI:Model"];
+        _model = string.IsNullOrWhiteSpace(model) ? "gpt-4o-mini" : model;
+
+        _httpClient.BaseAddress = new Uri(DefaultApiBaseAddress);
         if (_isConfigured)
             _httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
@@ -211,22 +224,22 @@ public class AIService : IAIService
 
     /// <summary>
     /// Offline substitute for pattern analysis: the same real numbers, restated
-    /// as plain observations. Honest about being local, still actionable.
+    /// as plain observations. The text says it came from the local fallback.
     /// </summary>
     private static string LocalInsightFallback(string context)
-        => $"Local insights (offline mode — configure an OpenAI API key for personalized coaching):\n{context}\nPrioritize the high-priority open tasks first, and keep logging energy/mood so trends become visible.";
+        => $"Local insights (offline mode. Configure an OpenAI API key for personalized coaching):\n{context}\nPrioritize the high-priority open tasks first, and keep logging energy/mood so trends become visible.";
 
     /// <summary>
     /// Offline substitute for the weekly plan: points the user at their real
     /// this-week goals and open workload instead of inventing a schedule.
     /// </summary>
     private static string LocalWeeklyPlanFallback(DateTime weekStart, string context)
-        => $"Local weekly outline for the week of {weekStart:yyyy-MM-dd} (offline mode — configure an OpenAI API key for a detailed plan):\n{context}\nBlock time for the highest-priority open tasks early in the week, and reserve a review slot before {weekStart.AddDays(6):yyyy-MM-dd}.";
+        => $"Local weekly outline for the week of {weekStart:yyyy-MM-dd} (offline mode. Configure an OpenAI API key for a detailed plan):\n{context}\nBlock time for the highest-priority open tasks early in the week, and reserve a review slot before {weekStart.AddDays(6):yyyy-MM-dd}.";
 
     /// <summary>
     /// The single OpenAI chat-completions call used by every public method.
-    /// Returns null when no API key is configured so callers serve fallbacks
-    /// without paying for a doomed HTTP round trip.
+    /// Returns null when no API key is configured so callers can serve a
+    /// fallback without making a request that would fail.
     /// </summary>
     private async Task<string?> CallChatAsync(string systemPrompt, string userPrompt, int maxTokens, double temperature, CancellationToken cancellationToken)
     {
@@ -235,7 +248,7 @@ public class AIService : IAIService
 
         var requestBody = new
         {
-            model = Model,
+            model = _model,
             messages = new[]
             {
                 new { role = "system", content = systemPrompt },
@@ -248,7 +261,7 @@ public class AIService : IAIService
         var json = JsonSerializer.Serialize(requestBody);
         using var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        var response = await _httpClient.PostAsync("chat/completions", content, cancellationToken);
+        var response = await _httpClient.PostAsync(_chatEndpoint, content, cancellationToken);
         response.EnsureSuccessStatusCode();
 
         var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

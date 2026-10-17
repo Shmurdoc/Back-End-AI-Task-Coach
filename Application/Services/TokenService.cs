@@ -1,5 +1,6 @@
 using Application.IService;
 using Application.IRepositories;
+using Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
@@ -11,19 +12,31 @@ using System.Text;
 namespace Application.Services;
 
 /// <summary>
-/// JWT token service for authentication and authorization
+/// JWT token service for authentication and authorization.
+/// Refresh tokens are stored server-side as SHA-256 hashes so they can be
+/// rotated on every use and revoked on demand. Reusing an already rotated
+/// token is treated as theft and revokes every active token of that user.
 /// </summary>
 public class TokenService : ITokenService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<TokenService> _logger;
     private readonly IUserRepository _userRepository;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public TokenService(IConfiguration configuration, ILogger<TokenService> logger, IUserRepository userRepository)
+    public TokenService(
+        IConfiguration configuration,
+        ILogger<TokenService> logger,
+        IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork)
     {
         _configuration = configuration;
         _logger = logger;
         _userRepository = userRepository;
+        _refreshTokenRepository = refreshTokenRepository;
+        _unitOfWork = unitOfWork;
     }
 
     public string GenerateToken(Guid userId, string email, string username)
@@ -54,7 +67,7 @@ public class TokenService : ITokenService
             );
 
             var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
-            
+
             _logger.LogInformation("JWT token generated successfully for user: {UserId}", userId);
             return tokenString;
         }
@@ -65,37 +78,20 @@ public class TokenService : ITokenService
         }
     }
 
-    public string GenerateRefreshToken(Guid userId, string email, string username)
+    public async Task<string> GenerateRefreshTokenAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default)
     {
         try
         {
-            var jwtSettings = GetJwtSettings();
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
-            var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var (tokenString, expiresAt) = BuildRefreshTokenJwt(userId, email, username);
 
-            var claims = new[]
+            await _refreshTokenRepository.AddAsync(new RefreshToken
             {
-                new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-                new Claim(ClaimTypes.Email, email),
-                new Claim(ClaimTypes.Name, username),
-                new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, email),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
-                // Marks this token as refresh-only so it is rejected by the
-                // auth middleware and by RefreshTokenAsync when used as an access token.
-                new Claim("token_use", "refresh")
-            };
+                UserId = userId,
+                TokenHash = HashRefreshToken(tokenString),
+                ExpiresAt = expiresAt
+            });
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var token = new JwtSecurityToken(
-                issuer: jwtSettings.Issuer,
-                audience: jwtSettings.Audience,
-                claims: claims,
-                expires: DateTime.UtcNow.AddDays(jwtSettings.RefreshExpiresInDays),
-                signingCredentials: credentials
-            );
-
-            var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
             _logger.LogInformation("Refresh token generated for user: {UserId}", userId);
             return tokenString;
         }
@@ -106,66 +102,16 @@ public class TokenService : ITokenService
         }
     }
 
-    public async Task<string> GenerateTokenAsync(string email, string password, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            _logger.LogInformation("Attempting to generate token for email: {Email}", email);
-
-            var user = await _userRepository.GetByEmailAsync(email);
-            if (user == null)
-            {
-                _logger.LogWarning("Token generation failed - user not found: {Email}", email);
-                throw new UnauthorizedAccessException("Invalid email or password");
-            }
-
-            if (!VerifyPassword(password, user.PasswordHash))
-            {
-                _logger.LogWarning("Token generation failed - invalid password for user: {Email}", email);
-                throw new UnauthorizedAccessException("Invalid email or password");
-            }
-
-            if (!user.IsActive)
-            {
-                _logger.LogWarning("Token generation failed - inactive user: {Email}", email);
-                throw new UnauthorizedAccessException("User account is inactive");
-            }
-
-            return GenerateToken(user.Id, user.Email, user.Name);
-        }
-        catch (Exception ex) when (!(ex is UnauthorizedAccessException))
-        {
-            _logger.LogError(ex, "Error generating token for email: {Email}", email);
-            throw new InvalidOperationException("Authentication service error", ex);
-        }
-    }
-
-    public async Task<string> GenerateTokenAsync(Guid userId, string email, string username, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            // Verify user exists and is active
-            var user = await _userRepository.GetByIdAsync(userId);
-            if (user == null || !user.IsActive)
-            {
-                _logger.LogWarning("Token generation failed - user not found or inactive: {UserId}", userId);
-                throw new UnauthorizedAccessException("User not found or inactive");
-            }
-
-            return GenerateToken(userId, email, username);
-        }
-        catch (Exception ex) when (!(ex is UnauthorizedAccessException))
-        {
-            _logger.LogError(ex, "Error generating token for user: {UserId}", userId);
-            throw new InvalidOperationException("Authentication service error", ex);
-        }
-    }
-
     public async Task<(string AccessToken, string RefreshToken)> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default)
     {
         try
         {
             _logger.LogInformation("Attempting to refresh token");
+
+            if (string.IsNullOrWhiteSpace(refreshToken))
+            {
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var jwtSettings = GetJwtSettings();
@@ -199,34 +145,129 @@ public class TokenService : ITokenService
             }
 
             var userIdClaim = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var emailClaim = principal.FindFirst(ClaimTypes.Email)?.Value;
-            var nameClaim = principal.FindFirst(ClaimTypes.Name)?.Value;
-
-            if (string.IsNullOrEmpty(userIdClaim) || string.IsNullOrEmpty(emailClaim) || string.IsNullOrEmpty(nameClaim))
-            {
-                throw new SecurityTokenException("Invalid token claims");
-            }
-
-            if (!Guid.TryParse(userIdClaim, out Guid userId))
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out Guid userId))
             {
                 throw new SecurityTokenException("Invalid user ID in token");
             }
 
+            // The token must exist in the store: a validly signed JWT that this
+            // server never issued (or already cleaned up) is not acceptable.
+            var storedToken = await _refreshTokenRepository.GetByTokenHashAsync(HashRefreshToken(refreshToken));
+            if (storedToken == null)
+            {
+                _logger.LogWarning("Refresh token rejected: not found in store");
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            var now = DateTime.UtcNow;
+
+            if (storedToken.RevokedAt != null)
+            {
+                // Reuse of a rotated or revoked token: the only party that
+                // replays an old token is a thief, so revoke the whole family.
+                var activeTokens = await _refreshTokenRepository.GetActiveByUserIdAsync(storedToken.UserId);
+                foreach (var activeToken in activeTokens)
+                {
+                    activeToken.RevokedAt = now;
+                }
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+                _logger.LogWarning("Refresh token reuse detected for user {UserId}; all active refresh tokens revoked", storedToken.UserId);
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
+            if (storedToken.ExpiresAt <= now)
+            {
+                _logger.LogWarning("Refresh token rejected: expired for user {UserId}", storedToken.UserId);
+                throw new UnauthorizedAccessException("Invalid refresh token");
+            }
+
             // Verify user still exists and is active
-            var user = await _userRepository.GetByIdAsync(userId);
+            var user = await _userRepository.GetByIdAsync(storedToken.UserId);
             if (user == null || !user.IsActive)
             {
                 throw new UnauthorizedAccessException("User not found or inactive");
             }
 
-            return (GenerateToken(userId, emailClaim, nameClaim), GenerateRefreshToken(userId, emailClaim, nameClaim));
+            // Rotate: revoke the presented token and issue a fresh pair, so a
+            // stolen copy stops working the moment the real client refreshes.
+            storedToken.RevokedAt = now;
+            var (newRefreshToken, newRefreshExpiresAt) = BuildRefreshTokenJwt(user.Id, user.Email, user.Name);
+            await _refreshTokenRepository.AddAsync(new RefreshToken
+            {
+                UserId = user.Id,
+                TokenHash = HashRefreshToken(newRefreshToken),
+                ExpiresAt = newRefreshExpiresAt
+            });
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Token refreshed successfully for user: {UserId}", user.Id);
+            return (GenerateToken(user.Id, user.Email, user.Name), newRefreshToken);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is SecurityTokenException or ArgumentException)
         {
-            _logger.LogError(ex, "Error refreshing token");
+            _logger.LogWarning(ex, "Refresh token rejected");
             throw new UnauthorizedAccessException("Invalid refresh token", ex);
         }
     }
+
+    public async Task<bool> RevokeRefreshTokenAsync(string refreshToken, Guid userId, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(refreshToken))
+            return false;
+
+        var storedToken = await _refreshTokenRepository.GetByTokenHashAsync(HashRefreshToken(refreshToken));
+        if (storedToken == null || storedToken.UserId != userId)
+        {
+            // Unknown token or a token that belongs to somebody else; report
+            // failure without revealing which of the two it was.
+            return false;
+        }
+
+        if (storedToken.RevokedAt != null)
+            return true; // already revoked; revocation is idempotent
+
+        storedToken.RevokedAt = DateTime.UtcNow;
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Refresh token revoked for user: {UserId}", userId);
+        return true;
+    }
+
+    private (string Token, DateTime ExpiresAtUtc) BuildRefreshTokenJwt(Guid userId, string email, string username)
+    {
+        var jwtSettings = GetJwtSettings();
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings.Key));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
+            new Claim(ClaimTypes.Email, email),
+            new Claim(ClaimTypes.Name, username),
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, email),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64),
+            // Marks this token as refresh-only so it is rejected by the
+            // auth middleware and by RefreshTokenAsync when used as an access token.
+            new Claim("token_use", "refresh")
+        };
+
+        var expiresAt = DateTime.UtcNow.AddDays(jwtSettings.RefreshExpiresInDays);
+        var token = new JwtSecurityToken(
+            issuer: jwtSettings.Issuer,
+            audience: jwtSettings.Audience,
+            claims: claims,
+            expires: expiresAt,
+            signingCredentials: credentials
+        );
+
+        return (new JwtSecurityTokenHandler().WriteToken(token), expiresAt);
+    }
+
+    private static string HashRefreshToken(string refreshToken)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken))).ToLowerInvariant();
 
     public static string HashPassword(string password)
     {
@@ -281,7 +322,7 @@ public class TokenService : ITokenService
     private JwtSettings GetJwtSettings()
     {
         var jwtSection = _configuration.GetSection("Jwt");
-        
+
         return new JwtSettings
         {
             Key = jwtSection["Key"] ?? throw new InvalidOperationException("JWT Key not configured"),

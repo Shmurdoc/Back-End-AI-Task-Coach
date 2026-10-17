@@ -1,27 +1,37 @@
 # Contributing
 
-Thanks for checking out my project and considering a contribution! I’m always happy to see pull requests, bug reports, and new ideas.
+This is a personal portfolio project, but issues and pull requests are welcome. The bar is
+simple: nothing merges unless the build has zero warnings and all tests pass.
 
-## How to Get Involved
-1. **Fork this repo** and make a feature branch for your work.
-2. **Write clear, well-documented code** (see my `DeveloperGuide.md` for style).
-3. **Add or update tests** for anything you change.
-4. **Run all tests locally** to make sure nothing breaks.
-5. **Open a pull request** with a good description and link to any related issues.
-6. **Join the code review**—I’ll give feedback and help you get it merged.
+## Setup
 
-## Branching
-- `main` is for production-ready code.
-- Use `feature/xyz`, `bugfix/xyz`, or release branches as needed.
+```powershell
+dotnet restore
+dotnet build          # must be warning-free
+dotnet test           # 131 tests, all green
+dotnet run --project WebAPI
+```
 
-## Code Review
-- I review all PRs and require at least one approval.
-- Automated checks (build, test, lint) must pass before merging.
+See `DeveloperGuide.md` for database setup, configuration keys, and Docker usage.
 
-## Reporting Issues
-- Please use GitHub Issues for bugs or feature requests.
-- Include clear steps to reproduce and what you expected to happen.
+## Workflow
 
-## Community
-- Be kind and constructive in all discussions.
-- Please follow the project’s code of conduct.
+1. Branch from **`master`** (the default branch): `git checkout -b feature/short-description`
+2. Keep changes focused; one concern per PR.
+3. Run `dotnet build` and `dotnet test` locally before pushing.
+4. Open a PR against **`master`**. CI (build, tests with coverage, Trivy scan) must pass.
+
+Branch notes: CI also runs on pushes to `main` and `develop`, but `master` is where development
+happens.
+
+## Code guidelines
+
+- Follow the existing Clean Architecture boundaries: `Domain` ← `Application` ← `Infrastructure` /
+  `WebAPI`. No backward references.
+- Controllers stay thin: bind → call one service → wrap in the `{ success, data }` envelope.
+- User-scoped endpoints must use `[Authorize]` + `[EnsureSelfUser]`; enforce entity ownership in
+  the service layer.
+- GUID ids, UTC timestamps, async methods with `CancellationToken`.
+- No new warnings. No comments unless they explain *why* something non-obvious is done.
+- Add tests for behavior changes: unit tests for services/controllers, integration tests for
+  auth/status-code behavior.

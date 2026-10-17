@@ -1,169 +1,50 @@
-# AI Task Coach - Production Readiness Guide
+# Production Readiness
 
-Comprehensive deployment checklist and production guidelines for the AI Task Coach system.
+An assessment checked against the current codebase. "Ready" means implemented **and tested**.
+Everything else is listed as a gap.
 
-## 🚀 Current Production Status
+## Ready
 
-### ✅ Ready for Production
-- **Application Layer**: Fully functional with comprehensive gamification system
-- **Database Schema**: Complete migration with 11 tables ready for deployment
-- **API Endpoints**: 40+ endpoints tested and documented
-- **Background Services**: Automated monitoring and intervention systems operational
-- **Documentation**: Complete API reference and architectural documentation
-- **Build System**: All projects compile successfully with minimal warnings
+| Area | Status |
+|------|--------|
+| Authentication | JWT access tokens + opaque refresh tokens; rotation on refresh; reuse detection revokes all user tokens; explicit revoke endpoint |
+| Password storage | PBKDF2 / SHA-256, 100,000 iterations, per-password salt |
+| Authorization | `EnsureSelfUser` filter (403 on cross-user `userId`) + service-level ownership checks (404 on foreign entities) |
+| Configuration safety | Startup fails on missing/short/placeholder `Jwt:Key`; production config ships placeholders so booting requires real secrets |
+| Error handling | Global exception middleware; consistent `{ success, data/error }` envelope; validation failures normalized |
+| Data layer | EF Core + SQL Server; 4 migrations; automatic migration on startup |
+| Observability | `/health/live` + `/health/ready` (DB check); Prometheus `/metrics` with HTTP, notification, and background-job metrics; structured `ILogger` logging |
+| Background jobs | Refresh-token cleanup (5 min delay, every 6 h, 24 h retention, batches of 500) with failure/execution metrics |
+| Real-time | SignalR hub with JWT auth; per-user groups; completion events for tasks/goals/habits |
+| Containers | Multi-stage Dockerfile; non-root runtime user |
+| CI | Build + 131 tests + coverage artifact & Codecov + Trivy filesystem scan to GitHub code scanning + GHCR image build/push on default branch |
+| AI resilience | All AI endpoints return local, data-grounded fallbacks when no API key is configured |
+| Tests | 131 tests, zero build warnings |
 
-### 🔄 Production Deployment Checklist
+## Gaps (known, deliberate)
 
-## 🏗️ Build & Quality Assurance
+| Area | Gap |
+|------|-----|
+| Authorization | No roles/RBAC. Every authenticated user is a regular user, and there is no admin surface. |
+| Rate limiting | None (login/refresh especially) |
+| API surface | No versioning, so breaking changes would be breaking |
+| Secret management | Environment-variable injection only; no built-in Key Vault/AWS Secrets Manager integration |
+| Transport | Local dev is HTTP; TLS termination/proxy configuration is not provided |
+| Deployment | CI pushes a container image; there is no CD to an environment, no IaC, no environment promotion |
+| Scaling | Migrate-on-startup assumes a single instance; no distributed lock; no distributed cache; analytics/gamification compute on read |
+| Query efficiency | No pagination on list endpoints; per-user analytics scans full histories |
+| Database ops | No backup/restore automation or PITR strategy; dev DB is a local SQL Server instance |
+| Testing depth | Integration tests use the EF InMemory provider, not a real SQL Server (compose provides one for manual testing) |
+| Observability ops | Prometheus/Grafana stack is dev-local; no alerting rules, no log aggregation, no tracing |
+| Account lifecycle | No email verification, password reset, or MFA |
 
-### ✅ Completed
-- [x] All projects build without errors
-- [x] Core functionality implemented and tested
-- [x] Comprehensive service layer with business logic
-- [x] Clean Architecture patterns properly implemented
-- [x] Background services for user behavior monitoring
+## Recommended next steps (in order)
 
-### 🔄 Pending
-- [ ] Complete unit test coverage (>80%)
-- [ ] Integration tests for all API endpoints
-- [ ] Load testing for concurrent users
-- [ ] Performance benchmarking for gamification features
-
-## 🔒 Security & Configuration
-
-### ✅ Implemented
-- [x] No hardcoded secrets in source control
-- [x] Environment variable configuration pattern
-- [x] Structured logging with proper levels
-- [x] Global exception handling middleware
-
-### 🔄 Required for Production
-- [ ] JWT/OAuth2 authentication implementation
-- [ ] Role-based access control (RBAC)
-- [ ] HTTPS enforcement with SSL certificates
-- [ ] API rate limiting (1000 requests/hour recommended)
-- [ ] CORS policy locked down for production domains
-- [ ] Input validation and sanitization on all endpoints
-- [ ] SQL injection protection (EF Core provides base protection)
-
-```json
-// Production appsettings.json example
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "${DATABASE_CONNECTION_STRING}"
-  },
-  "JwtSettings": {
-    "SecretKey": "${JWT_SECRET_KEY}",
-    "Issuer": "${JWT_ISSUER}",
-    "Audience": "${JWT_AUDIENCE}"
-  },
-  "NotificationSettings": {
-    "EmailProvider": {
-      "SmtpServer": "${SMTP_SERVER}",
-      "ApiKey": "${EMAIL_API_KEY}"
-    }
-  }
-}
-```
-
-## 📊 Observability & Monitoring
-
-### ✅ Ready
-- [x] Prometheus metrics endpoint (`/metrics`)
-- [x] Health check endpoints (`/health`, `/health/ready`, `/health/live`)
-- [x] Structured logging throughout application
-- [x] Background service monitoring and alerting
-
-### 🔄 Production Setup Required
-- [ ] Grafana dashboards deployed and configured
-- [ ] Log aggregation (ELK Stack, Azure Monitor, or CloudWatch)
-- [ ] Application Performance Monitoring (APM) integration
-- [ ] Critical error alerting (email, Slack, PagerDuty)
-- [ ] Database performance monitoring
-- [ ] Business metrics tracking (user engagement, gamification effectiveness)
-
-## 🐳 Docker & Deployment
-
-### ✅ Container Ready
-- [x] Multi-stage Dockerfile optimized for production
-- [x] docker-compose.yml for local development
-- [x] Application runs successfully in containers
-- [x] Database migrations execute properly in containerized environment
-
-### 🔄 Production Deployment
-- [ ] CI/CD pipeline setup (GitHub Actions, Azure DevOps, etc.)
-- [ ] Container registry configuration (Docker Hub, ACR, ECR)
-- [ ] Kubernetes manifests or Docker Swarm configuration
-- [ ] Blue-green deployment strategy
-- [ ] Automated rollback procedures
-- [ ] Container health checks and restart policies
-
-## 🗄️ Database & Data Management
-
-### ✅ Schema Ready
-- [x] Complete EF Core migration (`InitialCreate`) with 11 tables
-- [x] Proper foreign key relationships and constraints
-- [x] Data validation and integrity rules
-- [x] Connection string configuration for multiple environments
-
-### 🔄 Production Data Strategy
-- [ ] Database backup procedures (automated daily backups)
-- [ ] Disaster recovery plan and testing
-- [ ] Data retention policies for analytics and logs
-- [ ] Database performance tuning and indexing
-- [ ] Connection pooling optimization
-- [ ] Read replica setup for analytics queries
-
-## 📚 Documentation & Knowledge Management
-
-### ✅ Complete Documentation
-- [x] Comprehensive Architecture.md with Clean Architecture details
-- [x] Complete API_Reference.md with all endpoints and examples
-- [x] Detailed CHANGELOG.md with version history
-- [x] Production deployment guides
-- [x] Database schema documentation
-
-### 🔄 Additional Documentation Needed
-- [ ] Runbook for production operations
-- [ ] Troubleshooting guide for common issues
-- [ ] API client SDK documentation
-- [ ] User onboarding and training materials
-- [ ] Security incident response procedures
-
-## ⚡ Performance & Scalability
-
-### ✅ Current Performance Features
-- [x] Async/await patterns throughout application
-- [x] EF Core query optimization
-- [x] Background processing for long-running tasks
-- [x] Efficient DTO mapping and serialization
-
-### 🔄 Production Performance Optimization
-- [ ] Redis caching for frequently accessed data
-- [ ] Database connection pooling tuning
-- [ ] CDN setup for static assets
-- [ ] Response compression and caching headers
-- [ ] Database query performance analysis
-- [ ] Load testing with realistic user scenarios
-
-## 🎮 Gamification System Production Considerations
-
-### ✅ Current Implementation
-- [x] Enterprise-grade service layer with comprehensive business logic
-- [x] Real-time background monitoring and intervention
-- [x] Progressive point system with streak bonuses
-- [x] Badge collection with rarity management
-- [x] Competitive leaderboards and challenges
-
-### 🔄 Production Enhancements
-- [ ] A/B testing framework for gamification features
-- [ ] Analytics dashboard for engagement metrics
-- [ ] Configurable reward parameters via admin interface
-- [ ] Fraud detection for point manipulation
-- [ ] Social features (friend connections, team challenges)
-- [ ] Seasonal events and limited-time challenges
-
----
-
-*Last Updated: September 5, 2025*
-*Production Readiness Version: 2.0*
+1. Rate limiting on `/api/auth/*` and a global per-user limit.
+2. Pagination for `user/{userId}` list endpoints.
+3. Role model + admin-only endpoints (or explicitly document the single-tenant, no-admin design).
+4. Secret manager integration for `Jwt:Key`, `DefaultConnection`, `OpenAI:ApiKey`.
+5. CD pipeline: push image → staging environment → smoke tests → manual approval → production.
+6. Backup/restore runbook for the production database; test a restore.
+7. Replace migrate-on-startup with an explicit migration step in the deploy pipeline.
+8. Load test the analytics/leaderboard paths and add caching if needed.

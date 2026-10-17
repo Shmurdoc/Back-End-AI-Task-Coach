@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<ITaskRepository, TaskRepository>();
         services.AddScoped<IHabitRepository, HabitRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         services.AddScoped<IGoalRepository, GoalRepository>();
         services.AddScoped<IEnergyMoodRepository, EnergyMoodRepository>();

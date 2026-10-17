@@ -6,7 +6,7 @@ using Domain.Entities;
 namespace Application.Services.Analytics;
 
 /// <summary>
-/// Persists energy/mood check-ins via the repository layer — the old
+/// Persists energy/mood check-ins through the repository layer. The old
 /// process-local demo dictionary is gone; entries live in the database.
 /// Adds are staged by the repository and committed by the unit of work
 /// (repository convention).
